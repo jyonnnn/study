@@ -7,7 +7,7 @@
   <style>
     :root{
       --bg: #0f1115;
-      --card-size: min(70vmin, 520px); /* square 1:1 */
+      --card-size: min(70vmin, 520px);
       --gap: clamp(20px, 4vmin, 40px);
       --persp: 1200px;
       --radius: 16px;
@@ -18,14 +18,15 @@
     html,body{height:100%}
     body{
       margin:0; background: radial-gradient(1200px 800px at 50% 20%, #171a22, #0d0f14 60%, #080a0f);
-      color:#e9eefc; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:#e9eefc; font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       display:flex; align-items:center; justify-content:center; overflow:hidden;
     }
 
-    .chrome{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:var(--shadow)}
+    .chrome{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:var(--shadow)}
     .chrome .dot{width:10px;height:10px;border-radius:50%}
     .chrome .dot.red{background:#ff5f57}.chrome .dot.yellow{background:#febc2e}.chrome .dot.green{background:#28c840}
-    .chrome .bar{width:min(46vw,420px);height:28px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08)}
+    .chrome .bar{flex:1;}
+    .chrome input{width:min(46vw,420px);height:28px;border-radius:999px;border:none;padding:0 12px;background:rgba(255,255,255,.08);color:#fff;outline:none;font-size:14px}
 
     .wrap{width:100vw;height:100vh;display:grid;place-items:center;padding:max(12px,4vmin)}
 
@@ -54,9 +55,9 @@
   </style>
 </head>
 <body>
-  <div class="chrome" aria-hidden="true">
+  <div class="chrome" aria-hidden="false">
     <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-    <div class="bar"></div>
+    <input id="searchBox" type="text" placeholder="Tìm tui đi..." />
   </div>
 
   <main class="wrap">
@@ -71,11 +72,11 @@
 
   <script>
     const items = [
-      { img: 'anhtrang1.png', href: 'index1.html', caption: '무역영어 vocab' },
-      { img: 'anhtrang2.png', href: 'index2.html', caption: 'dien sau 2' },
-      { img: 'anhtrang3.png', href: 'index3.html', caption: 'dien sau 3' },
-      { img: 'anhtrang4.png', href: 'index4.html', caption: 'dien sau 4' },
-      { img: 'anhtrang5.png', href: 'index5.html', caption: 'dien sau 5' }
+      { img: 'anhtrang1.png', href: 'index1.html', caption: '무역영어 vocab', keywords:['무역영어','vocab'] },
+      { img: 'anhtrang2.png', href: 'index2.html', caption: 'dien sau 2', keywords:['dien','2','diensau2','dien sau 2'] },
+      { img: 'anhtrang3.png', href: 'index3.html', caption: 'dien sau 3', keywords:['dien','3','diensau3','dien sau 3'] },
+      { img: 'anhtrang4.png', href: 'index4.html', caption: 'dien sau 4', keywords:['dien','4','diensau4','dien sau 4'] },
+      { img: 'anhtrang5.png', href: 'index5.html', caption: 'dien sau 5', keywords:['dien','5','diensau5','dien sau 5'] }
     ];
 
     const track = document.getElementById('track');
@@ -113,6 +114,27 @@
     });
 
     addEventListener('resize',layout);
+
+    (function(){
+      var sb=document.getElementById('searchbar');
+      function norm2(s){ s=(s||'')+''; s=s.toLowerCase().split(' ').join(''); return s; }
+      var keys=items.map(function(it,idx){ return [norm2(it.caption),'trang'+(idx+1),'index'+(idx+1),norm2(it.href)].join(' '); });
+      function go(q){ var n=norm2(q); if(!n) return; var k=keys.findIndex(function(x){ return x.indexOf(n)>-1; }); if(k>=0){ i=k; layout(); } }
+      if(sb){ sb.addEventListener('keydown',function(e){ if(e.key==='Enter') go(sb.value); }); sb.addEventListener('input',function(e){ var v=e.target.value; if(v && v.length>=2) go(v); }); }
+    })();
+
+    // ===== Search feature =====
+    const searchBox=document.getElementById('searchBox');
+    searchBox.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){
+        const q=searchBox.value.trim().toLowerCase();
+        if(!q)return;
+        const found=items.findIndex(it=> it.caption.toLowerCase().includes(q) || (it.keywords && it.keywords.some(k=>k.toLowerCase().includes(q))));
+        if(found>=0){
+          i=found;layout();
+        }
+      }
+    });
   </script>
 </body>
 </html>
