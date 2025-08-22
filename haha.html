@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flashcards of Hjyeon</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --card:#f2d7d3; /* khung chính màu hồng nhạt */
+      --ink:#d84a3a;  /* chữ hồng đỏ */
+      --muted:#a8736e;
+      --accent:#d84a3a;
+      --accent-weak:#fcebea;
+      --border:#f8bfb9;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:url('anhtrang1.png') no-repeat center center fixed;
+      background-size:cover;
+      color:var(--ink);
+    }
+    /* phủ mờ 70% ảnh nền để nổi khung chính */
+    body::before{
+      content:""; position:fixed; inset:0; background:rgba(255,255,255,0.7); z-index:-1;
+    }
+
+    header{position:sticky;top:0;background:rgba(255,255,255,0.6);backdrop-filter:saturate(180%) blur(6px);border-bottom:1px solid var(--border);z-index:10}
+    .wrap{max-width:880px;margin:0 auto;padding:16px}
+    h1{font-size:22px;margin:0 0 6px 0;color:var(--ink);}
+    .sub{font-size:12px;color:var(--muted);}
+    .panel{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-top:10px}
+    .controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    input[type="text"]{padding:10px 12px;border:1px solid var(--border);border-radius:10px;outline:none;width:100%;background:#fff}
+    input[type="text"]:focus{border-color:var(--accent)}
+    button{border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;color:var(--ink)}
+    button.primary{background:var(--accent);border-color:transparent;color:#fff}
+    button.ghost{background:var(--accent-weak);border-color:transparent;color:var(--ink)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted)}
+
+    main{display:grid;justify-items:center;padding:20px}
+
+    /* Card */
+    .stage{width:min(600px,94vw);height:min(60vh,520px);min-height:360px;display:grid;place-items:center;margin:18px 0}
+    .card{width:100%;height:100%;border-radius:20px;background:var(--card);box-shadow:0 14px 36px rgba(216,74,58,.18);cursor:pointer;perspective:1200px;position:relative;border:1px solid var(--border)}
+    .card-inner{position:absolute;inset:0;border-radius:20px;transform-style:preserve-3d;transition:transform .6s}
+    .card.flipped .card-inner{transform:rotateY(180deg)}
+    .face{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:28px;border-radius:20px;backface-visibility:hidden}
+    .front{background:linear-gradient(180deg,#f2d7d3, #f9e5e2)}
+    .front h2{font-size:40px;line-height:1.1;margin:0;text-align:center;color:var(--ink)}
+    .badge{font-size:12px;color:var(--ink);background:var(--accent-weak);padding:6px 10px;border-radius:999px;border:1px dashed var(--border)}
+    .back{transform:rotateY(180deg);background:var(--card)}
+    .meaning{font-size:20px;line-height:1.45;text-align:center;color:var(--ink)}
+    .muted{color:var(--muted)}
+
+    /* Footer controls */
+    .nav{display:flex;gap:10px;align-items:center;justify-content:center}
+    .counter{font-size:14px;color:var(--muted)}
+
+    /* Add/Edit form */
+    details.box{width:min(600px,94vw);background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 12px 16px;box-shadow:0 10px 24px rgba(2,6,23,.05)}
+    details.box>summary{cursor:pointer;list-style:none;padding:6px 2px;font-weight:600;color:var(--ink)}
+    details.box[open]>summary{margin-bottom:8px}
+    .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;color:var(--muted)}
+    .hint{font-size:12px;color:var(--muted)}
+    .tiny{font-size:12px}
+    .switch{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--ink)}
+    .foot{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:8px}
+
+    @media (max-width:760px){
+      .grid{grid-template-columns:1fr}
+      .panel{grid-template-columns:1fr;gap:6px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Flashcards of Hjyeon</h1>
+      <div class="sub">Nhấp vào thẻ để lật • Space: lật | ←/→: chuyển thẻ | Enter: tìm kiếm</div>
+      <div class="panel">
+        <input id="search" type="text" placeholder="Tìm từ (EN/KO/VI)…" />
+        <div class="controls">
+          <label class="switch"><input id="toggle-ko" type="checkbox" checked> <span>Hiện tiếng Hàn</span></label>
+          <label class="switch"><input id="toggle-vi" type="checkbox" checked> <span>Hiện tiếng Việt</span></label>
+          <button id="shuffle" class="ghost" title="Xáo trộn">🔀 Xáo</button>
+        </div>
+        <div class="controls">
+          <button id="btn-export" title="Xuất JSON">⬇️ Xuất</button>
+          <label class="switch" title="Nhập JSON"><input id="file" type="file" accept="application/json"> <span>⬆️ Nhập</span></label>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage">
+      <div id="card" class="card" aria-live="polite" role="button" tabindex="0">
+        <div class="card-inner">
+          <div class="face front">
+            <span class="badge">EN</span>
+            <h2 id="front-word">loading…</h2>
+            <div class="hint">Nhấp để xem nghĩa</div>
+          </div>
+          <div class="face back">
+            <div class="badge">KO • VI</div>
+            <div class="meaning" id="back-meaning"></div>
+            <div class="hint muted">Nhấp để quay lại</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="prev">◀︎ Trước</button>
+      <button id="flip" class="primary">Lật thẻ</button>
+      <button id="next">Sau ▶︎</button>
+      <span class="counter" id="counter">0 / 0</span>
+      <button id="edit" title="Sửa thẻ hiện tại">✏️ Sửa</button>
+      <button id="del" title="Xoá thẻ hiện tại" style="color:#b91c1c;border-color:#fecaca;background:#fff0f0">🗑️ Xoá</button>
+    </div>
+
+    <details class="box">
+      <summary>＋ Thêm từ mới</summary>
+      <div class="grid">
+        <div>
+          <label>English</label>
+          <input id="in-en" type="text" placeholder="vd. innovative" />
+        </div>
+        <div>
+          <label>한국어 뜻</label>
+          <input id="in-ko" type="text" placeholder="vd. 혁신적인" />
+        </div>
+        <div>
+          <label>Tiếng Việt</label>
+          <input id="in-vi" type="text" placeholder="vd. đổi mới, sáng tạo" />
+        </div>
+      </div>
+      <div class="foot">
+        <span class="tiny muted">Mẹo: thêm nhanh rồi Enter để lưu.</span>
+        <div class="row">
+          <button id="add" class="primary">Lưu từ</button>
+          <button id="clear-all" title="Xoá toàn bộ bộ thẻ" style="border-color:#fecaca">🧹 Xoá tất cả</button>
+        </div>
+      </div>
+    </details>
+
+    <p class="tiny muted" style="margin-top:14px">Dữ liệu được lưu tự động trong trình duyệt (localStorage). Bạn có thể Xuất/Nhập JSON để sao lưu.</p>
+  </main>
+
+  <script>
+  (function(){
+    const LS_KEY = 'flatcards_v1';
+    const $ = (sel)=>document.querySelector(sel);
+
+    const sample = [
+      {en:'Abbreviation', ko:'약자, 줄임말', vi:'Từ viết tắt thường dùng trong thương mại như FOB, CIF, L/C.'},
+      {en:'Abandon', ko:'버리다, 위부하다', vi:'Từ bỏ quyền lợi hoặc nghĩa vụ theo hợp đồng.'},
+{en:'Acceptance', ko:'승낙, (어음의) 인수, (서류 등의) 수락', vi:'Sự đồng ý với đề nghị hoặc sự chấp nhận hối phiếu.'},
+{en:'Account', ko:'계정, 거래, ~을 설명하다', vi:'Tài khoản tài chính hoặc sự giải thích cho một vấn đề.'},
+{en:'Account receivables', ko:'외상매출채권, 미수금', vi:'Khoản phải thu từ khách hàng.'},
+{en:'Accommodate', ko:'제공하다', vi:'Cung cấp, đáp ứng một yêu cầu hoặc nhu cầu.'},
+{en:'Address', ko:'주소, 보내다, 다루다, 처리하다', vi:'Xử lý, giải quyết hoặc gửi đến địa chỉ.'},
+{en:'Advance payment', ko:'선지급방식', vi:'Phương thức thanh toán trước khi giao hàng.'},
+{en:'Advise', ko:'통지, 권고하다, 알리다', vi:'Thông báo, khuyến nghị hoặc tư vấn.'},
+{en:'Advising Bank', ko:'통지은행', vi:'Ngân hàng thông báo L/C cho người thụ hưởng.'},
+{en:'After Sight', ko:'일람 후', vi:'Thanh toán sau khi xuất trình hối phiếu.'},
+{en:'Agent', ko:'대리인, 대리점', vi:'Người hoặc công ty đại diện thay mặt bên khác.'},
+{en:'Agreement', ko:'합의, 계약', vi:'Thỏa thuận giữa các bên liên quan.'},
+{en:'Air Waybill (AWB)', ko:'항공화물운송장', vi:'Vận đơn dùng trong vận chuyển hàng không.'},
+{en:'All risks', ko:'전위험담보(약관)', vi:'Bảo hiểm mọi rủi ro có thể xảy ra.'},
+{en:'Amendment', ko:'개정, (신용장의) 조건변경', vi:'Sự sửa đổi, bổ sung điều kiện của hợp đồng hoặc L/C.'},
+{en:'Amicably', ko:'우호적으로, 원만하게', vi:'Theo cách thân thiện, hòa giải.'},
+{en:'Applicable', ko:'해당되는, 적용되는', vi:'Có thể áp dụng.'},
+{en:'Applicable Law', ko:'준거법', vi:'Luật áp dụng điều chỉnh hợp đồng.'},
+{en:'Applicant', ko:'(신용장의) 개설의뢰인', vi:'Người yêu cầu mở L/C.'},
+{en:'Appreciate', ko:'고마워하다, 인식하다', vi:'Cảm kích, đánh giá cao.'},
+{en:'Arbitration', ko:'중재', vi:'Giải quyết tranh chấp thông qua trọng tài.'},
+{en:'Arbitrator', ko:'중재인', vi:'Người đứng ra phân xử tranh chấp.'},
+{en:'Article', ko:'조항, 물품, 상품', vi:'Điều khoản hoặc mặt hàng.'},
+{en:'Arrangement', ko:'준비, 약정, 계약', vi:'Sự sắp xếp hoặc thỏa thuận.'},
+{en:'Assent', ko:'승인, 찬성', vi:'Sự đồng ý.'},
+{en:'Assign', ko:'맡기다, 양도하다', vi:'Chuyển giao quyền hoặc nghĩa vụ.'},
+{en:'Assignment', ko:'배정, 배치, 양도, 위탁(판매계약)', vi:'Sự chuyển nhượng hoặc phân công.'},
+{en:'At sight', ko:'일람출금', vi:'Thanh toán ngay khi xuất trình chứng từ.'},
+{en:'Attributable', ko:'~에 기인하는, ~의 탓으로 할 수 있는', vi:'Do nguyên nhân từ.'},
+{en:'Auction', ko:'경매', vi:'Bán hàng bằng hình thức đấu giá.'},
+{en:'Authority', ko:'권한, 당국, 기관', vi:'Cơ quan có thẩm quyền.'},
+{en:'Authorization', ko:'허가, 승인', vi:'Sự cho phép.'},
+{en:'Average', ko:'손해 (분손)', vi:'Tổn thất hàng hóa nhỏ trong vận tải.'},
+{en:'Avoid', ko:'(계약을) 해제하다, 피하다', vi:'Hủy bỏ hoặc tránh nghĩa vụ hợp đồng.'},
+{en:'Award rendered by arbitrators', ko:'중재인이 내린 중재판정', vi:'Phán quyết cuối cùng của trọng tài.'},
+{en:'Allowance', ko:'할인, 환급(액)', vi:'Khoản giảm trừ hoặc hoàn lại.'},
+{en:'Barter Trade', ko:'물물교환', vi:'Hình thức trao đổi hàng hóa không dùng tiền.'},
+{en:'Alongside', ko:'~ 옆에', vi:'Cạnh bên tàu hoặc kho.'},
+{en:'Bankrupt', ko:'파산한', vi:'Tình trạng mất khả năng thanh toán.'},
+{en:'Alternative', ko:'대안, 대체하는', vi:'Lựa chọn thay thế.'},
+{en:'Bear', ko:'부담하다, 담다, 가지다', vi:'Mang hoặc chịu trách nhiệm.'},
+{en:'Beneficiary', ko:'수익자', vi:'Người thụ hưởng lợi ích trong hợp đồng hoặc L/C.'},
+{en:'Berth term', ko:'하역비 포함 운임조건', vi:'Điều kiện bao gồm chi phí xếp dỡ tại cảng.'},
+{en:'Bid', ko:'입찰', vi:'Đưa giá trong đấu thầu.'},
+{en:'Breach', ko:'계약의 위반', vi:'Sự vi phạm điều khoản hợp đồng.'},
+{en:'Bulk Cargo', ko:'벌크화물, 산적화물', vi:'Hàng hóa không đóng gói, vận chuyển rời.'},
+{en:'Cargo Insurance', ko:'적하보험', vi:'Bảo hiểm hàng hóa vận chuyển.'},
+{en:'Carriage', ko:'운송, 운임', vi:'Việc chuyên chở hoặc cước phí.'},
+{en:'Carrier', ko:'운송인', vi:'Người hoặc công ty vận chuyển hàng.'},
+{en:'Carry out', ko:'실행하다', vi:'Thực hiện.'},
+{en:'Certain', ko:'확실한', vi:'Chắc chắn.'},
+{en:'Certificate of Analysis', ko:'성분분석서', vi:'Chứng nhận phân tích thành phần.'},
+{en:'Certificate of Origin', ko:'원산지증명서', vi:'Giấy chứng nhận xuất xứ.'},
+{en:'Charge', ko:'요금, 청구하다', vi:'Phí hoặc yêu cầu thanh toán.'},
+{en:'Charter party', ko:'용선계약', vi:'Hợp đồng thuê tàu.'},
+{en:'Charterer', ko:'용선자', vi:'Người thuê tàu.'},
+{en:'Circumstance', ko:'상황', vi:'Hoàn cảnh.'},
+{en:'Claim', ko:'청구, 요구', vi:'Yêu cầu bồi thường hoặc quyền lợi.'},
+{en:'Classification', ko:'분류', vi:'Sự phân loại.'},
+{en:'Clause', ko:'조항', vi:'Điều khoản trong hợp đồng.'},
+{en:'Clean B/L', ko:'청결 선하증권', vi:'Vận đơn sạch, không ghi chú hư hỏng.'},
+{en:'Clean Credit', ko:'청결 신용장', vi:'L/C không có điều kiện đặc biệt.'},
+{en:'Collateral', ko:'담보', vi:'Tài sản đảm bảo.'},
+{en:'Collecting bank', ko:'추심은행', vi:'Ngân hàng thu hộ.'},
+{en:'Commercial', ko:'상업의', vi:'Liên quan đến thương mại.'},
+{en:'Commodity', ko:'상품', vi:'Hàng hóa.'},
+{en:'Competitive', ko:'경쟁력 있는', vi:'Có khả năng cạnh tranh.'},
+{en:'Completion', ko:'완료', vi:'Sự hoàn thành.'},
+{en:'Comply', ko:'준수하다', vi:'Tuân thủ.'},
+{en:'Conclude', ko:'체결하다', vi:'Ký kết.'},
+{en:'Concurrent', ko:'동시의', vi:'Xảy ra cùng lúc.'},
+{en:'Condition', ko:'조건', vi:'Điều kiện.'},
+{en:'Conditional Offer', ko:'조건부 제안', vi:'Chào hàng có điều kiện.'},
+{en:'Confidential', ko:'기밀의', vi:'Bảo mật.'},
+{en:'Conformity', ko:'적합성', vi:'Sự phù hợp.'},
+{en:'Connection', ko:'연결', vi:'Mối liên hệ.'},
+{en:'Consent', ko:'동의', vi:'Sự đồng ý.'},
+{en:'Consequently', ko:'결과적으로', vi:'Do đó.'},
+{en:'Consideration', ko:'고려, 대가', vi:'Sự cân nhắc hoặc khoản bồi hoàn trong hợp đồng.'},
+{en:'Consignee', ko:'수화인', vi:'Người nhận hàng.'},
+{en:'Consignment', ko:'위탁화물', vi:'Lô hàng gửi.'},
+{en:'Consignor', ko:'송화인', vi:'Người gửi hàng.'},
+{en:'Consolidation', ko:'통합', vi:'Gộp hàng.'},
+{en:'Constitute', ko:'구성하다', vi:'Cấu thành.'},
+{en:'Consultation', ko:'협의', vi:'Sự tư vấn, tham vấn.'},
+{en:'Consumption', ko:'소비', vi:'Sự tiêu dùng.'},
+{en:'Contract of affreightment (COA)', ko:'운송계약', vi:'Hợp đồng vận chuyển hàng hóa.'},
+{en:'Contracting State', ko:'계약 체결국', vi:'Quốc gia ký kết.'},
+{en:'Convenient', ko:'편리한', vi:'Thuận tiện.'},
+{en:'Convention', ko:'협약', vi:'Công ước.'},
+{en:'Convert', ko:'전환하다', vi:'Chuyển đổi.'},
+{en:'Conveyance', ko:'운송수단', vi:'Phương tiện vận chuyển.'},
+{en:'Correspond', ko:'일치하다', vi:'Tương ứng, phù hợp.'},
+{en:'Correspondence', ko:'서신', vi:'Thư từ, giao tiếp văn bản.'},
+{en:'Correspondent bank', ko:'코레스은행', vi:'Ngân hàng đại lý.'},
+{en:'Counterpart', ko:'상대방', vi:'Bên đối tác.'},
+{en:'Covenant', ko:'계약, 약속', vi:'Điều khoản hoặc cam kết trong hợp đồng.'},
+{en:'Cover', ko:'보장하다', vi:'Bảo hiểm hoặc bao gồm.'},
+{en:'Creditor', ko:'채권자', vi:'Chủ nợ.'},
+{en:'Credit-worthiness', ko:'신용도', vi:'Mức độ tín nhiệm.'},
+{en:'Cumulative', ko:'누적적인', vi:'Tích lũy.'},
+{en:'Currency exchange rate', ko:'환율', vi:'Tỷ giá hối đoái.'},
+{en:'Customs clearance', ko:'통관', vi:'Thông quan.'},
+{en:'Debit', ko:'차변', vi:'Ghi nợ.'},
+{en:'Debtor', ko:'채무자', vi:'Người mắc nợ.'},
+{en:'Deduction', ko:'공제', vi:'Khoản khấu trừ.'},
+{en:'Deem', ko:'간주하다', vi:'Cho là, xem như.'},
+{en:'Deferred payment', ko:'연기지급', vi:'Thanh toán hoãn lại.'},
+{en:'Definite', ko:'확정적인', vi:'Chắc chắn, rõ ràng.'},
+{en:'Deliberate', ko:'의도적인', vi:'Cố ý.'},
+{en:'Delivery', ko:'인도', vi:'Giao hàng.'},
+{en:'Demurrage', ko:'체화료', vi:'Phí lưu kho, lưu bãi.'},
+{en:'Dependent', ko:'의존적인', vi:'Phụ thuộc.'},
+{en:'Depot', ko:'창고', vi:'Kho bãi.'},
+{en:'Description', ko:'설명', vi:'Mô tả.'},
+{en:'Despite', ko:'불구하고', vi:'Mặc dù.'},
+{en:'Destination', ko:'목적지', vi:'Điểm đến.'},
+{en:'Detention charge', ko:'체선료', vi:'Phí lưu container.'},
+{en:'Determine', ko:'결정하다', vi:'Xác định.'},
+{en:'Disburse', ko:'지불하다', vi:'Chi trả.'},
+{en:'Discharge', ko:'양하하다', vi:'Dỡ hàng.'},
+{en:'Disclose', ko:'공개하다', vi:'Tiết lộ.'},
+{en:'Discrepancy', ko:'불일치', vi:'Sự sai lệch.'},
+{en:'Dispatch', ko:'발송', vi:'Gửi đi.'},
+{en:'Dispose', ko:'처분하다', vi:'Xử lý, vứt bỏ.'},
+{en:'Dispute', ko:'분쟁', vi:'Tranh chấp.'},
+{en:'Distress', ko:'조난', vi:'Tình trạng nguy cấp.'},
+{en:'Distributor', ko:'유통업자', vi:'Nhà phân phối.'},
+{en:'Division', ko:'부서', vi:'Bộ phận, phòng ban.'},
+{en:'Documentary Credit (DC)', ko:'화환신용장', vi:'Tín dụng chứng từ.'},
+{en:'Domestic', ko:'국내의', vi:'Nội địa.'},
+{en:'Domicile', ko:'주소지', vi:'Nơi cư trú, địa chỉ đăng ký.'},
+{en:'Draft', ko:'환어음', vi:'Hối phiếu.'},
+{en:'Draw', ko:'발행하다', vi:'Phát hành.'},
+{en:'Drawee', ko:'지급인', vi:'Người bị đòi tiền.'},
+{en:'Drawer', ko:'발행인', vi:'Người phát hành.'},
+{en:'Due', ko:'만기된', vi:'Đến hạn.'},
+{en:'Duplicate', ko:'복사본', vi:'Bản sao.'},
+{en:'Duty', ko:'관세', vi:'Thuế.'},
+{en:'Elsewhere', ko:'다른 곳에', vi:'Nơi khác.'},
+{en:'Enclosed', ko:'동봉된', vi:'Kèm theo.'},
+{en:'Endorsement', ko:'배서', vi:'Ký hậu.'},
+{en:'Engagement', ko:'약속', vi:'Cam kết.'},
+{en:'Enforce', ko:'시행하다', vi:'Thi hành.'},
+{en:'Ensure', ko:'보장하다', vi:'Đảm bảo.'},
+{en:'Entitle', ko:'자격을 주다', vi:'Trao quyền.'},
+{en:'Equilibrium', ko:'균형', vi:'Cán cân.'},
+{en:'Equipment', ko:'장비', vi:'Trang thiết bị.'},
+{en:'Escalation clause', ko:'가격조정조항', vi:'Điều khoản điều chỉnh giá.'},
+{en:'Establish', ko:'설립하다', vi:'Thành lập.'},
+{en:'Evidence', ko:'증거', vi:'Bằng chứng.'},
+{en:'Exception', ko:'예외', vi:'Ngoại lệ.'},
+{en:'Exclusive', ko:'독점적인', vi:'Độc quyền.'},
+{en:'Execution', ko:'집행', vi:'Thi hành.'},
+{en:'Expense', ko:'비용', vi:'Chi phí.'},
+{en:'Explosion', ko:'폭발', vi:'Vụ nổ.'},
+{en:'Explicit', ko:'명백한', vi:'Rõ ràng.'},
+{en:'Expressly', ko:'명시적으로', vi:'Một cách rõ ràng.'},
+{en:'Extent', ko:'범위', vi:'Mức độ.'},
+{en:'Fabric', ko:'직물', vi:'Vải.'},
+{en:'Face value', ko:'액면가', vi:'Mệnh giá.'},
+{en:'Facility', ko:'시설', vi:'Cơ sở vật chất.'},
+{en:'Favorable', ko:'유리한', vi:'Thuận lợi.'},
+{en:'Fiscal', ko:'재정의', vi:'Tài chính.'},
+{en:'Force Majeure', ko:'불가항력', vi:'Bất khả kháng.'},
+{en:'Formality', ko:'형식', vi:'Thủ tục hình thức.'},
+{en:'Freight', ko:'화물, 운임', vi:'Cước phí.'},
+{en:'Fund', ko:'기금', vi:'Quỹ.'},
+{en:'Furnish', ko:'제공하다', vi:'Cung cấp.'},
+{en:'General', ko:'일반적인', vi:'Chung.'},
+{en:'Govern', ko:'지배하다', vi:'Chi phối.'},
+{en:'Grant', ko:'부여하다', vi:'Ban hành.'},
+{en:'Guarantee', ko:'보증', vi:'Bảo lãnh.'},
+{en:'Guidance note', ko:'설명서', vi:'Hướng dẫn.'},
+{en:'Hand over', ko:'인도하다', vi:'Bàn giao.'},
+{en:'Harbor', ko:'항구', vi:'Bến cảng.'},
+{en:'Hereby', ko:'이에 의하여', vi:'Bằng văn bản này.'},
+{en:'Herein', ko:'여기에', vi:'Tại đây.'},
+{en:'Hereto', ko:'이에', vi:'Gắn kèm.'},
+{en:'Holder', ko:'소지자', vi:'Người giữ.'},
+{en:'Honour', ko:'이행하다', vi:'Thực hiện (trả tiền).'},
+{en:'Identification', ko:'식별', vi:'Nhận dạng.'},
+{en:'Immediately', ko:'즉시', vi:'Ngay lập tức.'},
+{en:'Implicitly', ko:'암묵적으로', vi:'Ngầm hiểu.'},
+{en:'Import duty', ko:'수입관세', vi:'Thuế nhập khẩu.'},
+{en:'Impose', ko:'부과하다', vi:'Áp đặt.'},
+
+   ];
+
+let all = sample.slice();
+saveAll();
+
+
+    let view = all.slice();
+    let idx = 0;
+    let flipped = false;
+
+    // Elements
+    const card = $('#card');
+    const frontWord = $('#front-word');
+    const backMeaning = $('#back-meaning');
+    const counter = $('#counter');
+    const search = $('#search');
+    const toggleKO = $('#toggle-ko');
+    const toggleVI = $('#toggle-vi');
+
+    function saveAll(){ localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+    function loadAll(){ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+      return arr;
+    }
+
+    function render(){
+      if(view.length===0){
+        frontWord.textContent = 'Không có thẻ';
+        backMeaning.innerHTML = '<span class="muted">Hãy thêm từ mới.</span>';
+        $('#prev').disabled = $('#next').disabled = $('#flip').disabled = true;
+        counter.textContent = '0 / 0';
+        card.classList.remove('flipped');
+        return;
+      }
+      $('#prev').disabled = $('#next').disabled = $('#flip').disabled = false;
+      idx = (idx + view.length) % view.length;
+      const c = view[idx];
+      frontWord.textContent = c.en;
+      const segs = [];
+      if(toggleKO.checked && c.ko) segs.push(`<div><strong>KO</strong>: ${escapeHtml(c.ko)}</div>`);
+      if(toggleVI.checked && c.vi) segs.push(`<div><strong>VI</strong>: ${escapeHtml(c.vi)}</div>`);
+      backMeaning.innerHTML = segs.join('');
+      counter.textContent = `${idx+1} / ${view.length}`;
+      if(!flipped) card.classList.remove('flipped');
+      else card.classList.add('flipped');
+
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+
+    function applyFilter(){
+      const q = search.value.trim().toLowerCase();
+      view = all.filter(c=>{
+        if(!q) return true;
+        return [c.en,c.ko,c.vi].filter(Boolean).some(x=>x.toLowerCase().includes(q));
+      });
+      idx = 0; render();
+    }
+
+    // Events
+    $('#flip').addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+    card.addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+    $('#next').addEventListener('click', ()=>{ idx++; flipped=false; render(); });
+    $('#prev').addEventListener('click', ()=>{ idx--; flipped=false; render(); });
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='ArrowRight'){ e.preventDefault(); $('#next').click(); }
+      if(e.key==='ArrowLeft'){ e.preventDefault(); $('#prev').click(); }
+      if(e.key===' '){ e.preventDefault(); $('#flip').click(); }
+      if(e.key==='Enter' && document.activeElement===search){ applyFilter(); }
+    });
+
+    search.addEventListener('input', ()=>{ applyFilter(); });
+    $('#shuffle').addEventListener('click', ()=>{ view = shuffle(view); idx=0; flipped=false; render(); });
+    toggleKO.addEventListener('change', render);
+    toggleVI.addEventListener('change', render);
+
+    // Add new card
+    function addCard(en,ko,vi){
+      if(!en){ alert('Vui lòng nhập English'); return; }
+      all.push({en:en.trim(), ko:ko.trim(), vi:vi.trim()});
+      saveAll();
+      applyFilter();
+      if(!search.value){ idx = all.length-1; }
+      flipped=false; render();
+    }
+
+    $('#add').addEventListener('click', ()=>{
+      const en=$('#in-en').value, ko=$('#in-ko').value, vi=$('#in-vi').value;
+      addCard(en,ko,vi);
+      $('#in-en').value = $('#in-ko').value = $('#in-vi').value = '';
+      $('#in-en').focus();
+    });
+    ['#in-en','#in-ko','#in-vi'].forEach(sel=>$(sel).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#add').click(); }}));
+
+    // Edit current
+    $('#edit').addEventListener('click', ()=>{
+      if(view.length===0) return;
+      const curr = view[idx];
+      const en = prompt('Sửa EN', curr.en); if(en===null) return;
+      const ko = prompt('Sửa KO', curr.ko||'') ?? '';
+      const vi = prompt('Sửa VI', curr.vi||'') ?? '';
+      const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
+      if(masterIndex>-1){ all[masterIndex] = {en:en.trim(), ko:ko.trim(), vi:vi.trim()}; saveAll(); applyFilter(); render(); }
+    });
+
+    // Delete current
+    $('#del').addEventListener('click', ()=>{
+      if(view.length===0) return;
+      const curr = view[idx];
+      if(!confirm(`Xoá thẻ: "${curr.en}"?`)) return;
+      const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
+      if(masterIndex>-1){ all.splice(masterIndex,1); saveAll(); applyFilter(); idx=0; flipped=false; render(); }
+    });
+
+    // Clear all
+    $('#clear-all').addEventListener('click', ()=>{
+      if(confirm('Xoá toàn bộ bộ thẻ?')){ all=[]; saveAll(); applyFilter(); render(); }
+    });
+
+    // Export JSON
+    $('#btn-export').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'flatcards_vocab.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 500);
+    });
+
+    // Import JSON
+    $('#file').addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if(!Array.isArray(data)) throw new Error('Định dạng JSON không hợp lệ');
+        all = data.map(x=>({en:String(x.en||'').trim(), ko:String(x.ko||'').trim(), vi:String(x.vi||'').trim()})).filter(x=>x.en);
+        saveAll(); search.value=''; view=all.slice(); idx=0; flipped=false; render();
+      }catch(err){ alert('Không thể nhập JSON: '+ err.message); }
+      e.target.value='';
+    });
+
+    // First render
+    applyFilter(); render();
+  })();
+  </script>
+</body>
+</html>
