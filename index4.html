@@ -252,17 +252,15 @@ body::before{
 
   <script>
   (function(){
-    const LS_KEY = 'flatcards_v1';
-    const $ = (sel)=>document.querySelector(sel);
+const LS_KEY = 'flatcards_v1'; // có thể đổi tên nếu muốn reset sạch
 
-const sample = [ /* có thể để trống */ ];
-
-// lưu/đọc localStorage
+// Lưu / đọc từ localStorage
 function saveAll(){ localStorage.setItem(LS_KEY, JSON.stringify(all)); }
 function loadAll(){ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
 
-// Ưu tiên load từ localStorage; nếu rỗng thì nạp sample rồi lưu
+// Bắt đầu với dữ liệu trong localStorage (hoặc mảng trống nếu chưa có gì)
 let all = loadAll();
+
 if(!Array.isArray(all) || all.length === 0){
   all = sample.slice();
   saveAll();
