@@ -1,140 +1,135 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Coverflow 5 Pages</title>
+  <title>Trade Eng Menu</title>
   <style>
-    :root{
-      --bg: #0f1115;
-      --card-size: min(70vmin, 520px);
-      --gap: clamp(20px, 4vmin, 40px);
-      --persp: 1200px;
-      --radius: 16px;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --accent: #9cc0ff;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background: radial-gradient(1200px 800px at 50% 20%, #171a22, #0d0f14 60%, #080a0f);
-      color:#e9eefc; font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      display:flex; align-items:center; justify-content:center; overflow:hidden;
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e1e;
+      padding: 20px;
+      color: white;
     }
 
-    .chrome{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:var(--shadow)}
-    .chrome .dot{width:10px;height:10px;border-radius:50%}
-    .chrome .dot.red{background:#ff5f57}.chrome .dot.yellow{background:#febc2e}.chrome .dot.green{background:#28c840}
-    .chrome .bar{flex:1;}
-    .chrome input{width:min(46vw,420px);height:28px;border-radius:999px;border:none;padding:0 12px;background:rgba(255,255,255,.08);color:#fff;outline:none;font-size:14px}
+    /* Thanh trên cùng */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      background: #2c2c2c;
+      padding: 8px 16px;
+      border-radius: 16px;
+      margin-bottom: 25px;
+    }
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+      margin-right: 12px;
+    }
+    .circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+    .red { background: #ff5f56; }
+    .yellow { background: #ffbd2e; }
+    .green { background: #27c93f; }
 
-    .wrap{width:100vw;height:100vh;display:grid;place-items:center;padding:max(12px,4vmin)}
+    .search-box {
+      flex: 1;
+      background: #3a3a3a;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: none;
+      color: #eee;
+      font-size: 14px;
+    }
+    .search-box::placeholder {
+      color: #bbb;
+    }
 
-    .carousel{position:relative;width:100%;height:100%;perspective:var(--persp);display:flex;align-items:center;justify-content:center;}
+    /* Các khung chọn */
+    .card {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 12px 0;
+      cursor: pointer;
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      transition: transform 0.15s ease-in-out;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+    .title {
+      font-size: 18px;
+    }
+    .subtitle {
+      font-size: 14px;
+      font-weight: normal;
+      margin-top: 4px;
+      color: #444;
+    }
 
-    .track{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
-
-    .card{position:absolute;left:50%;top:50%;width:var(--card-size);height:var(--card-size);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);user-select:none;cursor:pointer;transform-style:preserve-3d;transition:transform .6s ease,filter .6s ease,opacity .6s ease;will-change:transform,filter,opacity;transform:translate(-50%,-50%)}
-    .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-
-    .card.state-center{z-index:5;transform:translate(-50%,-50%) scale(1);filter:none}
-    .card.state-left{z-index:4;transform:translate(-50%,-50%) translateX(-60%) rotateY(-32deg) scale(.9);filter:brightness(.9) saturate(.9) blur(.2px);opacity:.95}
-    .card.state-right{z-index:4;transform:translate(-50%,-50%) translateX(60%) rotateY(32deg) scale(.9);filter:brightness(.9) saturate(.9) blur(.2px);opacity:.95}
-    .card.state-far-left{z-index:3;transform:translate(-50%,-50%) translateX(-120%) rotateY(-50deg) scale(.82);opacity:.65;filter:blur(.4px) saturate(.85)}
-    .card.state-far-right{z-index:3;transform:translate(-50%,-50%) translateX(120%) rotateY(50deg) scale(.82);opacity:.65;filter:blur(.4px) saturate(.85)}
-
-    .caption{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.55) 60%,rgba(0,0,0,.85) 100%);color:#fff;font-weight:600;text-align:center}
-
-    .controls{ position:absolute; top:50%; left:0; right:0; display:flex; justify-content:space-between; transform:translateY(-50%); padding:0 20px; }
-    .btn{ pointer-events:auto; width:52px; height:52px; display:grid; place-items:center; border-radius:50%; border:1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.06); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color:#eaf1ff; cursor:pointer;
-      box-shadow: var(--shadow); transition: transform .15s ease, background .2s ease;}
-    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.1)}
-
-    @media(max-width:720px){:root{--card-size:min(86vmin,400px)}.caption{font-size:14px}.chrome{transform:translateX(-50%) scale(.9)}}
+    /* màu nền */
+    .c1 { background: #FFFBF2; }
+    .c2 { background: #FFE7E7; }
+    .c3 { background: #DDD7E5; }
+    .c4 { background: #B9CBE1; }
+    .c5 { background: #ADB8D6; }
   </style>
 </head>
 <body>
-  <div class="chrome" aria-hidden="false">
-    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-    <input id="searchBox" type="text" placeholder="찾아봥..." />
+
+  <!-- Thanh trên cùng -->
+  <div class="top-bar">
+    <div class="traffic-lights">
+      <div class="circle red"></div>
+      <div class="circle yellow"></div>
+      <div class="circle green"></div>
+    </div>
+    <input type="text" class="search-box" placeholder="찾아방..." />
   </div>
 
-  <main class="wrap">
-    <section class="carousel" aria-roledescription="carousel" aria-label="5 trang">
-      <div class="track" id="track"></div>
-      <div class="controls">
-        <button class="btn" id="prev">&#x276E;</button>
-        <button class="btn" id="next">&#x276F;</button>
-      </div>
-    </section>
-  </main>
+  <!-- Các khung -->
+  <a href="index1.html" class="card c1">
+    <div>
+      <div class="title">1</div>
+      <div class="subtitle">giaithich1</div>
+    </div>
+  </a>
 
-  <script>
-    const items = [
-      { img: 'anhtrang1.png', href: 'index1.html', caption: '무역영어 vocab', keywords:['무역영어','vocab'] },
-      { img: 'anhtrang2.png', href: 'index2.html', caption: 'dien sau 2', keywords:['dien','2','diensau2','dien sau 2'] },
-      { img: 'anhtrang3.png', href: 'index3.html', caption: 'dien sau 3', keywords:['dien','3','diensau3','dien sau 3'] },
-      { img: 'anhtrang4.png', href: 'index4.html', caption: 'dien sau 4', keywords:['dien','4','diensau4','dien sau 4'] },
-      { img: 'anhtrang5.png', href: 'index5.html', caption: 'dien sau 5', keywords:['dien','5','diensau5','dien sau 5'] }
-    ];
+  <a href="index2.html" class="card c2">
+    <div>
+      <div class="title">400vocab trade eng</div>
+      <div class="subtitle">무역영어</div>
+    </div>
+  </a>
 
-    const track = document.getElementById('track');
-    items.forEach((it, i) => {
-      const a = document.createElement('a');
-      a.className = 'card'; a.href = it.href;
-      a.innerHTML = `<img alt="${it.caption}" src="${it.img}"><div class="caption">${it.caption}</div>`;
-      track.appendChild(a);
-    });
+  <a href="index3.html" class="card c3">
+    <div>
+      <div class="title">3</div>
+      <div class="subtitle">giaithich3</div>
+    </div>
+  </a>
 
-    const cards = Array.from(document.querySelectorAll('.card'));
-    let i = 0;
+  <a href="index4.html" class="card c4">
+    <div>
+      <div class="title">eng trade explain</div>
+      <div class="subtitle">ICC-CISG</div>
+    </div>
+  </a>
 
-    function layout(){
-      cards.forEach(c => c.classList.remove('state-left','state-right','state-center','state-far-left','state-far-right'));
-      const left1=(i-1+cards.length)%cards.length,left2=(i-2+cards.length)%cards.length;
-      const right1=(i+1)%cards.length,right2=(i+2)%cards.length;
-      cards[i].classList.add('state-center');
-      cards[left1].classList.add('state-left');
-      cards[right1].classList.add('state-right');
-      cards[left2].classList.add('state-far-left');
-      cards[right2].classList.add('state-far-right');
-    }
+  <a href="index5.html" class="card c5">
+    <div>
+      <div class="title">5</div>
+      <div class="subtitle">giaithich5</div>
+    </div>
+  </a>
 
-    function next(){i=(i+1)%cards.length;layout();}
-    function prev(){i=(i-1+cards.length)%cards.length;layout();}
-
-    layout();
-
-    document.getElementById('next').addEventListener('click',next);
-    document.getElementById('prev').addEventListener('click',prev);
-
-    cards.forEach((c,idx)=>{
-      c.addEventListener('click',e=>{if(idx!==i){e.preventDefault();i=idx;layout();}});
-    });
-
-    addEventListener('resize',layout);
-
-    (function(){
-      var sb=document.getElementById('searchbar');
-      function norm2(s){ s=(s||'')+''; s=s.toLowerCase().split(' ').join(''); return s; }
-      var keys=items.map(function(it,idx){ return [norm2(it.caption),'trang'+(idx+1),'index'+(idx+1),norm2(it.href)].join(' '); });
-      function go(q){ var n=norm2(q); if(!n) return; var k=keys.findIndex(function(x){ return x.indexOf(n)>-1; }); if(k>=0){ i=k; layout(); } }
-      if(sb){ sb.addEventListener('keydown',function(e){ if(e.key==='Enter') go(sb.value); }); sb.addEventListener('input',function(e){ var v=e.target.value; if(v && v.length>=2) go(v); }); }
-    })();
-
-    // ===== Search feature =====
-    const searchBox=document.getElementById('searchBox');
-    searchBox.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){
-        const q=searchBox.value.trim().toLowerCase();
-        if(!q)return;
-        const found=items.findIndex(it=> it.caption.toLowerCase().includes(q) || (it.keywords && it.keywords.some(k=>k.toLowerCase().includes(q))));
-        if(found>=0){
-          i=found;layout();
-        }
-      }
-    });
-  </script>
 </body>
 </html>
