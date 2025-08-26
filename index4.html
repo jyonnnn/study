@@ -251,204 +251,202 @@ body::before{
   </main>
 
   <script>
-  (function(){
-    const LS_KEY = 'flatcards_v1';   // key lưu trữ
-    const $ = (sel)=>document.querySelector(sel);
+(function(){
+  const $ = (sel)=>document.querySelector(sel);
 
-    // ===== Persistent storage (safe) =====
-    function storageAvailable() {
-      try {
-        const x = '__test__' + Math.random();
-        localStorage.setItem(x, '1');
-        localStorage.removeItem(x);
-        return true;
-      } catch (e) { return false; }
-    }
+  /* ===== STORAGE INIT (KEY mới + reset qua URL) ===== */
+  // Key theo đường dẫn file => tách biệt với bản cũ (hết dính 400 từ)
+  const LS_KEY = `flatcards_${location.pathname.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_v1`;
 
-    const useLocal = storageAvailable();
-    let RAM_FALLBACK = [];
+  // Cho phép reset sạch qua URL: ...?reset=1
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('reset') === '1') {
+    try { localStorage.removeItem(LS_KEY); } catch(e){}
+  }
 
-    function saveAll() {
-      try {
-        if (useLocal) {
-          localStorage.setItem(LS_KEY, JSON.stringify(all));
-        } else {
-          RAM_FALLBACK = JSON.parse(JSON.stringify(all));
-          console.warn('[flatcards] localStorage unavailable → RAM fallback (data won’t persist after reload).');
-        }
-      } catch (e) {
-        console.error('[flatcards] saveAll failed:', e);
-      }
-    }
-
-    function loadAll() {
-      try {
-        if (useLocal) {
-          const raw = localStorage.getItem(LS_KEY);
-          return raw ? JSON.parse(raw) : [];
-        } else {
-          console.warn('[flatcards] localStorage unavailable → RAM fallback.');
-          return RAM_FALLBACK || [];
-        }
-      } catch (e) {
-        console.error('[flatcards] loadAll failed:', e);
-        return [];
-      }
-    }
-
-    // 🔑 Lần đầu mở → all = [] (không có sample mặc định nữa)
-    let all = loadAll();
-    console.log('[flatcards] loaded', all.length, 'cards; storage:', useLocal ? 'localStorage' : 'RAM');
-
-
-
-    let view = all.slice();
-    let idx = 0;
-    let flipped = false;
-
-    // Elements
-    const card = $('#card');
-    const frontWord = $('#front-word');
-    const backMeaning = $('#back-meaning');
-    const counter = $('#counter');
-    const search = $('#search');
-    const toggleKO = $('#toggle-ko');
-    const toggleVI = $('#toggle-vi');
-
-    function saveAll(){ localStorage.setItem(LS_KEY, JSON.stringify(all)); }
-    function loadAll(){ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
-
-    function shuffle(arr){
-      for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
-      return arr;
-    }
-
-    function render(){
-      if(view.length===0){
-        frontWord.textContent = 'Không có thẻ';
-        backMeaning.innerHTML = '<span class="muted">Hãy thêm từ mới.</span>';
-        $('#prev').disabled = $('#next').disabled = $('#flip').disabled = true;
-        counter.textContent = '0 / 0';
-        card.classList.remove('flipped');
-        return;
-      }
-      $('#prev').disabled = $('#next').disabled = $('#flip').disabled = false;
-      idx = (idx + view.length) % view.length;
-      const c = view[idx];
-      frontWord.textContent = c.en;
-      const segs = [];
-if(toggleKO.checked && c.ko){
-  segs.push(`<div class="entry"><span class="tag">E</span><div class="text">${escapeHtml(c.ko)}</div></div>`);
-}
-if(toggleVI.checked && c.vi){
-  segs.push(`<div class="entry"><span class="tag">V</span><div class="text">${escapeHtml(c.vi)}</div></div>`);
-}
-backMeaning.innerHTML = segs.join('');
-
-      counter.textContent = `${idx+1} / ${view.length}`;
-      if(!flipped) card.classList.remove('flipped');
-      else card.classList.add('flipped');
-
-    }
-
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
-
-    function applyFilter(){
-      const q = search.value.trim().toLowerCase();
-      view = all.filter(c=>{
-        if(!q) return true;
-        return [c.en,c.ko,c.vi].filter(Boolean).some(x=>x.toLowerCase().includes(q));
+  // One-time: dọn key legacy từng dùng
+  try {
+    if (!localStorage.getItem('flatcards_migrated_v3')) {
+      ['flatcards_v1','flatcards_v2','flatcards_v3'].forEach(k=>{
+        try { localStorage.removeItem(k); } catch(e){}
       });
-      idx = 0; render();
+      localStorage.setItem('flatcards_migrated_v3','1');
     }
+  } catch(e){}
 
-    // Events
-    $('#flip').addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
-    card.addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
-    $('#next').addEventListener('click', ()=>{ idx++; flipped=false; render(); });
-    $('#prev').addEventListener('click', ()=>{ idx--; flipped=false; render(); });
+  // Kiểm tra storage khả dụng
+  function storageAvailable() {
+    try { const x='__t__'+Math.random(); localStorage.setItem(x,'1'); localStorage.removeItem(x); return true; }
+    catch(e){ return false; }
+  }
+  const useLocal = storageAvailable();
+  let RAM_FALLBACK = [];
 
-    document.addEventListener('keydown', (e)=>{
-      if(e.key==='ArrowRight'){ e.preventDefault(); $('#next').click(); }
-      if(e.key==='ArrowLeft'){ e.preventDefault(); $('#prev').click(); }
-      if(e.key===' '){ e.preventDefault(); $('#flip').click(); }
-      if(e.key==='Enter' && document.activeElement===search){ applyFilter(); }
-    });
+  function saveAll() {
+    try {
+      if (useLocal) localStorage.setItem(LS_KEY, JSON.stringify(all));
+      else { RAM_FALLBACK = JSON.parse(JSON.stringify(all)); console.warn('[flatcards] RAM fallback'); }
+    } catch(e){ console.error('[flatcards] saveAll failed', e); }
+  }
 
-    search.addEventListener('input', ()=>{ applyFilter(); });
-    $('#shuffle').addEventListener('click', ()=>{ view = shuffle(view); idx=0; flipped=false; render(); });
-    toggleKO.addEventListener('change', render);
-    toggleVI.addEventListener('change', render);
+  function loadAll() {
+    try {
+      if (useLocal) { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : []; }
+      console.warn('[flatcards] RAM fallback'); return RAM_FALLBACK || [];
+    } catch(e){ console.error('[flatcards] loadAll failed', e); return []; }
+  }
 
-    // Add new card
-    function addCard(en,ko,vi){
-      if(!en){ alert('Vui lòng nhập English'); return; }
-      all.push({en:en.trim(), ko:ko.trim(), vi:vi.trim()});
-      saveAll();
-      applyFilter();
-      if(!search.value){ idx = all.length-1; }
-      flipped=false; render();
+  // 🔑 Lần đầu chạy → rỗng
+  let all = loadAll();
+  console.log('[flatcards] key:', LS_KEY, 'count:', all.length, 'storage:', useLocal?'localStorage':'RAM');
+
+  /* ===== KHÔNG khai báo lại saveAll/loadAll phía dưới nữa! ===== */
+
+  let view = all.slice();
+  let idx = 0;
+  let flipped = false;
+
+  // Elements
+  const card = $('#card');
+  const frontWord = $('#front-word');
+  const backMeaning = $('#back-meaning');
+  const counter = $('#counter');
+  const search = $('#search');
+  const toggleKO = $('#toggle-ko');
+  const toggleVI = $('#toggle-vi');
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+    return arr;
+  }
+
+  function render(){
+    if(view.length===0){
+      frontWord.textContent = 'Không có thẻ';
+      backMeaning.innerHTML = '<span class="muted">Hãy thêm từ mới.</span>';
+      $('#prev').disabled = $('#next').disabled = $('#flip').disabled = true;
+      counter.textContent = '0 / 0';
+      card.classList.remove('flipped');
+      return;
     }
+    $('#prev').disabled = $('#next').disabled = $('#flip').disabled = false;
+    idx = (idx + view.length) % view.length;
+    const c = view[idx];
+    frontWord.textContent = c.en;
 
-    $('#add').addEventListener('click', ()=>{
-      const en=$('#in-en').value, ko=$('#in-ko').value, vi=$('#in-vi').value;
-      addCard(en,ko,vi);
-      $('#in-en').value = $('#in-ko').value = $('#in-vi').value = '';
-      $('#in-en').focus();
+    // Mặt sau: E / V gọn
+    const segs = [];
+    if(toggleKO?.checked && c.ko){
+      segs.push(`<div class="entry"><span class="tag">E</span><div class="text">${escapeHtml(c.ko)}</div></div>`);
+    }
+    if(toggleVI?.checked && c.vi){
+      segs.push(`<div class="entry"><span class="tag">V</span><div class="text">${escapeHtml(c.vi)}</div></div>`);
+    }
+    backMeaning.innerHTML = segs.join('');
+
+    counter.textContent = `${idx+1} / ${view.length}`;
+    card.classList.toggle('flipped', flipped);
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+
+  function applyFilter(){
+    const q = search.value.trim().toLowerCase();
+    view = all.filter(c=>{
+      if(!q) return true;
+      return [c.en,c.ko,c.vi].filter(Boolean).some(x=>x.toLowerCase().includes(q));
     });
-    ['#in-en','#in-ko','#in-vi'].forEach(sel=>$(sel).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#add').click(); }}));
+    idx = 0; render();
+  }
 
-    // Edit current
-    $('#edit').addEventListener('click', ()=>{
-      if(view.length===0) return;
-      const curr = view[idx];
-      const en = prompt('Sửa EN', curr.en); if(en===null) return;
-      const ko = prompt('Sửa KO', curr.ko||'') ?? '';
-      const vi = prompt('Sửa VI', curr.vi||'') ?? '';
-      const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
-      if(masterIndex>-1){ all[masterIndex] = {en:en.trim(), ko:ko.trim(), vi:vi.trim()}; saveAll(); applyFilter(); render(); }
-    });
+  // Events
+  $('#flip').addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+  card.addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+  $('#next').addEventListener('click', ()=>{ idx++; flipped=false; render(); });
+  $('#prev').addEventListener('click', ()=>{ idx--; flipped=false; render(); });
 
-    // Delete current
-    $('#del').addEventListener('click', ()=>{
-      if(view.length===0) return;
-      const curr = view[idx];
-      if(!confirm(`Xoá thẻ: "${curr.en}"?`)) return;
-      const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
-      if(masterIndex>-1){ all.splice(masterIndex,1); saveAll(); applyFilter(); idx=0; flipped=false; render(); }
-    });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight'){ e.preventDefault(); $('#next').click(); }
+    if(e.key==='ArrowLeft'){ e.preventDefault(); $('#prev').click(); }
+    if(e.key===' '){ e.preventDefault(); $('#flip').click(); }
+    if(e.key==='Enter' && document.activeElement===search){ applyFilter(); }
+  });
 
-    // Clear all
-    $('#clear-all').addEventListener('click', ()=>{
-      if(confirm('Xoá toàn bộ bộ thẻ?')){ all=[]; saveAll(); applyFilter(); render(); }
-    });
+  search.addEventListener('input', ()=>{ applyFilter(); });
+  $('#shuffle').addEventListener('click', ()=>{ view = shuffle(view); idx=0; flipped=false; render(); });
+  toggleKO?.addEventListener('change', render);
+  toggleVI?.addEventListener('change', render);
 
-    // Export JSON
-    $('#btn-export').addEventListener('click', ()=>{
-      const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'flatcards_vocab.json';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 500);
-    });
+  // Add new card
+  function addCard(en,ko,vi){
+    if(!en){ alert('Vui lòng nhập English'); return; }
+    all.push({en:en.trim(), ko:ko.trim(), vi:vi.trim()});
+    saveAll();           // lưu bền
+    applyFilter();
+    if(!search.value){ idx = all.length-1; }
+    flipped=false; render();
+  }
 
-    // Import JSON
-    $('#file').addEventListener('change', async (e)=>{
-      const file = e.target.files[0]; if(!file) return;
-      try{
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if(!Array.isArray(data)) throw new Error('Định dạng JSON không hợp lệ');
-        all = data.map(x=>({en:String(x.en||'').trim(), ko:String(x.ko||'').trim(), vi:String(x.vi||'').trim()})).filter(x=>x.en);
-        saveAll(); search.value=''; view=all.slice(); idx=0; flipped=false; render();
-      }catch(err){ alert('Không thể nhập JSON: '+ err.message); }
-      e.target.value='';
-    });
+  $('#add').addEventListener('click', ()=>{
+    const en=$('#in-en').value, ko=$('#in-ko').value, vi=$('#in-vi').value;
+    addCard(en,ko,vi);
+    $('#in-en').value = $('#in-ko').value = $('#in-vi').value = '';
+    $('#in-en').focus();
+  });
+  ['#in-en','#in-ko','#in-vi'].forEach(sel=>$(sel).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#add').click(); }}));
 
-    // First render
-    applyFilter(); render();
-  })();
-  </script>
+  // Edit current
+  $('#edit').addEventListener('click', ()=>{
+    if(view.length===0) return;
+    const curr = view[idx];
+    const en = prompt('Sửa EN', curr.en); if(en===null) return;
+    const ko = prompt('Sửa KO', curr.ko||'') ?? '';
+    const vi = prompt('Sửa VI', curr.vi||'') ?? '';
+    const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
+    if(masterIndex>-1){ all[masterIndex] = {en:en.trim(), ko:ko.trim(), vi:vi.trim()}; saveAll(); applyFilter(); render(); }
+  });
+
+  // Delete current
+  $('#del').addEventListener('click', ()=>{
+    if(view.length===0) return;
+    const curr = view[idx];
+    if(!confirm(`Xoá thẻ: "${curr.en}"?`)) return;
+    const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
+    if(masterIndex>-1){ all.splice(masterIndex,1); saveAll(); applyFilter(); idx=0; flipped=false; render(); }
+  });
+
+  // Clear all
+  $('#clear-all').addEventListener('click', ()=>{
+    if(confirm('Xoá toàn bộ bộ thẻ?')){ all=[]; saveAll(); applyFilter(); render(); }
+  });
+
+  // Export JSON
+  $('#btn-export').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'flatcards_vocab.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 500);
+  });
+
+  // Import JSON
+  $('#file').addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if(!Array.isArray(data)) throw new Error('Định dạng JSON không hợp lệ');
+      all = data.map(x=>({en:String(x.en||'').trim(), ko:String(x.ko||'').trim(), vi:String(x.vi||'').trim()})).filter(x=>x.en);
+      saveAll(); search.value=''; view=all.slice(); idx=0; flipped=false; render();
+    }catch(err){ alert('Không thể nhập JSON: '+ err.message); }
+    e.target.value='';
+  });
+
+  // First render
+  applyFilter(); render();
+})();
+</script>
+
 </body>
 </html>
