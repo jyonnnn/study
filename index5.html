@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lịch trình 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: #F4F7FD;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      color: #333;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      margin: 15px;
+    }
+
+    .sidebar h2 {
+      font-weight: 500;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    .tasks {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .task {
+      padding: 8px;
+      margin-bottom: 6px;
+      background: #f7f9ff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .task:hover {
+      background: #eaf1ff;
+    }
+
+    /* Calendar Wrapper */
+    .calendar-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .calendar-header h1 {
+      font-weight: 500;
+      font-size: 22px;
+      color: #333;
+    }
+
+    .month-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .month-buttons button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      background: #eef2ff;
+      cursor: pointer;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .month-buttons button.active {
+      background: #0078ff;
+      color: #fff;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 15px;
+      flex: 1;
+    }
+
+    .day {
+      background: #fff;
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .day:hover {
+      transform: scale(1.03);
+      background: #f7faff;
+    }
+
+    .day-number {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #0078ff;
+    }
+
+    .task-item {
+      background: #eef3ff;
+      padding: 3px 6px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #333;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .task-item:hover {
+      background: #dfe9ff;
+    }
+
+    /* Task Detail Panel */
+    .task-detail {
+      width: 300px;
+      background: #fff;
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      margin: 15px;
+    }
+
+    .task-detail h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    #detailInput {
+      width: 100%;
+      height: 180px;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      resize: none;
+      outline: none;
+    }
+
+    #saveDetailBtn {
+      margin-top: 10px;
+      padding: 10px;
+      background: #0078ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #saveDetailBtn:hover {
+      background: #005fd9;
+    }
+
+    /* Popup Form */
+    .popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: 0.3s;
+    }
+
+    .popup.active {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .popup-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .popup-content input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .popup-content button {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #0078ff;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .popup-content button:hover {
+      background: #005fd9;
+    }
+
+  /* Tạo hiệu ứng màu khác nhau cho các nhiệm vụ */
+  .task-item {
+    transition: transform 0.15s, background-color 0.2s;
+  }
+  .task-item:hover {
+    transform: scale(1.03);
+    filter: brightness(95%);
+  }
+  </style>
+
+
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>장희연</h2>
+    <div class="tasks" id="taskList"></div>
+  </div>
+
+<script>
+  // Hàm chọn màu pastel ngẫu nhiên
+  function getRandomPastelColor() {
+    const pastelColors = [
+      "#E3F2FD", "#FCE4EC", "#E8F5E9", "#FFF9C4", "#FFEBEE",
+      "#EDE7F6", "#FFF3E0", "#E1F5FE", "#F3E5F5", "#F1F8E9"
+    ];
+    return pastelColors[Math.floor(Math.random() * pastelColors.length)];
+  }
+
+  // Quan sát khi nhiệm vụ được tạo và gán màu cho chúng
+  document.addEventListener("DOMContentLoaded", () => {
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll(".task-item").forEach(item => {
+        if (!item.dataset.color) {
+          const taskTitle = item.textContent.trim();
+          const colorKey = `color-${taskTitle}`;
+          let color = localStorage.getItem(colorKey);
+
+          // Nếu chưa có màu thì random và lưu lại
+          if (!color) {
+            color = getRandomPastelColor();
+            localStorage.setItem(colorKey, color);
+          }
+
+          item.style.backgroundColor = color;
+          item.dataset.color = color;
+        }
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+</script>
+
+
+  <!-- Calendar -->
+  <div class="calendar-wrapper">
+    <div class="calendar-header">
+      <h1 id="monthYear">Hello 9/2025</h1>
+      <div class="month-buttons" id="monthButtons">
+        <button data-month="8" class="active">9</button>
+        <button data-month="9">10</button>
+        <button data-month="10">11</button>
+        <button data-month="11">12</button>
+      </div>
+    </div>
+    <div class="calendar" id="calendar"></div>
+  </div>
+
+  <!-- Task Detail -->
+  <div class="task-detail">
+    <h2>Detail</h2>
+    <textarea id="detailInput" placeholder="..."></textarea>
+    <button id="saveDetailBtn">ok nha</button>
+  </div>
+
+  <!-- Popup Form -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <h3>new mission</h3>
+      <input type="text" id="taskInput" placeholder="..." />
+      <button id="saveTaskBtn">ok</button>
+    </div>
+  </div>
+
+  <script>
+    const calendar = document.getElementById("calendar");
+    const monthYear = document.getElementById("monthYear");
+    const taskList = document.getElementById("taskList");
+    const popup = document.getElementById("popup");
+    const taskInput = document.getElementById("taskInput");
+    const saveTaskBtn = document.getElementById("saveTaskBtn");
+    const detailInput = document.getElementById("detailInput");
+    const saveDetailBtn = document.getElementById("saveDetailBtn");
+    const monthButtons = document.querySelectorAll("#monthButtons button");
+
+    let currentMonth = 8; // Tháng 9
+    const year = 2025;
+    const tasks = JSON.parse(localStorage.getItem("tasks")) || {};
+    let selectedDate = null;
+    let selectedTask = null;
+
+    function renderCalendar(month) {
+      calendar.innerHTML = "";
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      monthYear.textContent = `Hello ${month + 1}`;
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("div");
+        calendar.appendChild(empty);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayDiv = document.createElement("div");
+        dayDiv.classList.add("day");
+
+        const dayNumber = document.createElement("div");
+        dayNumber.classList.add("day-number");
+        dayNumber.innerText = day;
+        dayDiv.appendChild(dayNumber);
+
+        const key = `${year}-${month}-${day}`;
+        const dayTasks = tasks[key] || [];
+
+        dayTasks.forEach((taskObj, index) => {
+          const taskItem = document.createElement("div");
+          taskItem.classList.add("task-item");
+          taskItem.textContent = taskObj.title;
+          taskItem.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectedDate = key;
+            selectedTask = index;
+            detailInput.value = taskObj.detail || "";
+          });
+          dayDiv.appendChild(taskItem);
+        });
+
+        dayDiv.addEventListener("click", () => {
+          selectedDate = key;
+          popup.classList.add("active");
+        });
+
+        calendar.appendChild(dayDiv);
+      }
+    }
+
+    saveTaskBtn.addEventListener("click", () => {
+      const taskTitle = taskInput.value.trim();
+      if (taskTitle && selectedDate) {
+        if (!tasks[selectedDate]) tasks[selectedDate] = [];
+        tasks[selectedDate].push({ title: taskTitle, detail: "" });
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        taskInput.value = "";
+        popup.classList.remove("active");
+        renderCalendar(currentMonth);
+        renderSidebarTasks();
+      }
+    });
+
+    saveDetailBtn.addEventListener("click", () => {
+      if (selectedDate !== null && selectedTask !== null) {
+        tasks[selectedDate][selectedTask].detail = detailInput.value;
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        alert("Chi tiết đã được lưu!");
+      }
+    });
+
+    popup.addEventListener("click", (e) => {
+      if (e.target === popup) {
+        popup.classList.remove("active");
+      }
+    });
+
+    function renderSidebarTasks() {
+      taskList.innerHTML = "";
+      Object.keys(tasks).forEach((key) => {
+        tasks[key].forEach((taskObj, index) => {
+          const div = document.createElement("div");
+          div.classList.add("task");
+          div.textContent = taskObj.title;
+          div.addEventListener("click", () => {
+            selectedDate = key;
+            selectedTask = index;
+            detailInput.value = taskObj.detail || "";
+          });
+          taskList.appendChild(div);
+        });
+      });
+    }
+
+    // Chuyển tháng khi bấm nút
+    monthButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        monthButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentMonth = parseInt(btn.dataset.month);
+        renderCalendar(currentMonth);
+      });
+    });
+
+    renderCalendar(currentMonth);
+    renderSidebarTasks();
+  </script>
+</body>
+</html>
