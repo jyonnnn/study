@@ -252,21 +252,54 @@ body::before{
 
   <script>
   (function(){
-    const LS_KEY = 'flatcards_v1';
+    const LS_KEY = 'flatcards_v1';   // key lưu trữ
     const $ = (sel)=>document.querySelector(sel);
 
-const sample = [ /* có thể để trống */ ];
+    // ===== Persistent storage (safe) =====
+    function storageAvailable() {
+      try {
+        const x = '__test__' + Math.random();
+        localStorage.setItem(x, '1');
+        localStorage.removeItem(x);
+        return true;
+      } catch (e) { return false; }
+    }
 
-// lưu/đọc localStorage
-function saveAll(){ localStorage.setItem(LS_KEY, JSON.stringify(all)); }
-function loadAll(){ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+    const useLocal = storageAvailable();
+    let RAM_FALLBACK = [];
 
-// Ưu tiên load từ localStorage; nếu rỗng thì nạp sample rồi lưu
-let all = loadAll();
-if(!Array.isArray(all) || all.length === 0){
-  all = sample.slice();
-  saveAll();
-}
+    function saveAll() {
+      try {
+        if (useLocal) {
+          localStorage.setItem(LS_KEY, JSON.stringify(all));
+        } else {
+          RAM_FALLBACK = JSON.parse(JSON.stringify(all));
+          console.warn('[flatcards] localStorage unavailable → RAM fallback (data won’t persist after reload).');
+        }
+      } catch (e) {
+        console.error('[flatcards] saveAll failed:', e);
+      }
+    }
+
+    function loadAll() {
+      try {
+        if (useLocal) {
+          const raw = localStorage.getItem(LS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } else {
+          console.warn('[flatcards] localStorage unavailable → RAM fallback.');
+          return RAM_FALLBACK || [];
+        }
+      } catch (e) {
+        console.error('[flatcards] loadAll failed:', e);
+        return [];
+      }
+    }
+
+    // 🔑 Lần đầu mở → all = [] (không có sample mặc định nữa)
+    let all = loadAll();
+    console.log('[flatcards] loaded', all.length, 'cards; storage:', useLocal ? 'localStorage' : 'RAM');
+
 
 
     let view = all.slice();
