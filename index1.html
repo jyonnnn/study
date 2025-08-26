@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flashcards of Hjyeon — Sentences</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Tone: Light Taupe (#E5E0D9) */
+      --bg:#E5E0D9;                 /* nền chính */
+      --ink:#234E76;                /* chữ xanh sang */
+      --muted:#5B6B7A;             /* chữ phụ */
+      --accent:#2E5F91;            /* xanh nhấn */
+      --accent-weak:#ECF1F6;       /* nền nhạt cho chip */
+      --card:#FFFFFF;              /* thẻ trắng */
+      --border:#D8D3CB;            /* viền dịu */
+      --shadow:0 14px 36px rgba(26,41,60,.12);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;max-width:100%;overflow-x:hidden}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      display:flex; flex-direction:column; align-items:center;
+    }
+
+    /* Header */
+    header{position:sticky; top:0; width:100%;
+      background:rgba(229,224,217,.7);
+      backdrop-filter:saturate(160%) blur(6px);
+      border-bottom:1px solid var(--border);
+      z-index:10;
+    }
+    .wrap{width:min(880px,92vw); margin-inline:auto; padding:14px clamp(12px,4vw,18px)}
+    h1{margin:0 0 6px; font:600 28px/1.2 "Playfair Display", serif; letter-spacing:.2px}
+    .sub{font-size:12px; color:var(--muted)}
+    .panel{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin-top:10px}
+    input[type="text"]{
+      padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff; color:var(--ink); width:100%;
+    }
+    input[type="text"]::placeholder{color:#9aa5b1}
+    input[type="text"]:focus{outline:none; border-color:var(--accent)}
+    .controls{display:flex; gap:6px; flex-wrap:wrap}
+    button{border:1px solid var(--border); background:#fff; color:var(--ink); border-radius:12px; padding:10px 14px; cursor:pointer}
+    button.primary{background:var(--accent); color:#fff; border-color:transparent}
+    button.ghost{background:var(--accent-weak); border-color:transparent}
+
+    /* Main */
+    main{display:grid; justify-items:center; padding:22px; width:100%}
+    .stage{width:min(640px,94vw); height:min(60vh,520px); min-height:360px; display:grid; place-items:center; margin:18px 0}
+    .card{width:100%; height:100%; border-radius:20px; background:var(--card);
+      border:1px solid var(--border); box-shadow:var(--shadow);
+      cursor:pointer; perspective:1200px; position:relative;
+    }
+    .card-inner{position:absolute; inset:0; border-radius:20px; transform-style:preserve-3d; transition:transform .6s}
+    .card.flipped .card-inner{transform:rotateY(180deg)}
+    .face{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:14px; padding:28px; border-radius:20px; backface-visibility:hidden; -webkit-backface-visibility:hidden}
+    .front{background:linear-gradient(180deg,#ffffff,#f8f9fb)}
+    .back{transform:rotateY(180deg); background:var(--card)}
+    .badge{font-size:12px; color:var(--ink); background:var(--accent-weak); padding:6px 10px; border-radius:999px; border:1px dashed var(--border)}
+    .front h2{font:600 clamp(22px,4vw,34px)/1.35 "Playfair Display", serif; text-align:center; margin:0; color:var(--ink)}
+    .meaning{max-width:92%; font-size:clamp(15px,2.6vw,18px); line-height:1.65; text-align:center}
+    .muted{color:var(--muted)}
+
+    .nav{display:flex; gap:10px; align-items:center; justify-content:center}
+    .counter{font-size:14px; color:var(--muted)}
+
+    @media (max-width:760px){
+      .panel{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap">
+      <h1>Flashcards of Hjyeon</h1>
+      <div class="sub">Nhấp vào thẻ để lật • Space: lật | ←/→: chuyển thẻ | Enter: tìm kiếm</div>
+
+      <div class="panel">
+        <input id="search" type="text" placeholder="Tìm câu (EN/VI)..." />
+        <div class="controls">
+          <button id="shuffle" class="ghost" title="Xáo trộn">🔀 Xáo</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage">
+      <div id="card" class="card" aria-live="polite" role="button" tabindex="0">
+        <div class="card-inner">
+          <div class="face front">
+            <span class="badge">EN</span>
+            <h2 id="front-word">loading…</h2>
+            <div class="hint muted">보기</div>
+          </div>
+          <div class="face back">
+            <div class="badge">VI</div>
+            <div class="meaning" id="back-meaning"></div>
+            <div class="hint muted">다시 보기</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="prev">◀︎ </button>
+      <button id="flip" class="primary">ㅎ</button>
+      <button id="next"> ▶︎</button>
+      <span class="counter" id="counter">0 / 0</span>
+    </div>
+  </main>
+
+  <script>
+  (function(){
+    const $ = (sel)=>document.querySelector(sel);
+
+    // === DATA ===
+    // Thêm câu TẠI ĐÂY theo mẫu:
+    // { en: "CÂU TIẾNG ANH", vi: "Nghĩa tiếng Việt" },
+    const DATA = [
+      { en: "A woman is carrying a train at the station.", vi: "Một người phụ nữ đang mang một đoàn tàu tại nhà ga." },
+{ en: "A woman is carrying a bag at the station.", vi: "Một người phụ nữ đang mang một cái túi tại nhà ga." },
+{ en: "A man is sitting on the bench next to the window.", vi: "Một người đàn ông đang ngồi trên băng ghế bên cạnh cửa sổ." },
+{ en: "Some people are boarding a train at the station.", vi: "Một vài người đang lên tàu tại nhà ga." },
+{ en: "An employee is pointing to a whiteboard in the office.", vi: "Một nhân viên đang chỉ vào bảng trắng trong văn phòng." },
+{ en: "Customers are waiting for a bus on the street.", vi: "Khách hàng đang chờ xe buýt trên đường phố." },
+{ en: "A man is holding a book at a desk.", vi: "Một người đàn ông đang cầm một quyển sách tại bàn làm việc." },
+{ en: "The workers are carrying some boxes under the table.", vi: "Những công nhân đang mang vài cái hộp dưới cái bàn." },
+{ en: "They are looking at the screen in the office.", vi: "Họ đang nhìn vào màn hình trong văn phòng." },
+{ en: "A woman is sitting on a chair at a desk.", vi: "Một người phụ nữ đang ngồi trên ghế tại bàn làm việc." },
+{ en: "Passengers are walking with their luggage at the station.", vi: "Hành khách đang đi bộ với hành lý tại nhà ga." },
+{ en: "A man is pointing to a computer in the office.", vi: "Một người đàn ông đang chỉ vào cái máy tính trong văn phòng." },
+{ en: "An employee is standing next to the window.", vi: "Một nhân viên đang đứng bên cạnh cửa sổ." },
+{ en: "The workers are talking in front of a building.", vi: "Những công nhân đang nói chuyện trước một tòa nhà." },
+{ en: "Some people are standing in a line at the station.", vi: "Một vài người đang xếp hàng tại nhà ga." },
+{ en: "Customers are holding documents at a desk.", vi: "Khách hàng đang cầm tài liệu tại bàn làm việc." },
+{ en: "A woman is boarding a train at the station.", vi: "Một người phụ nữ đang lên tàu tại nhà ga." },
+{ en: "A man is looking at a whiteboard in the office.", vi: "Một người đàn ông đang nhìn vào bảng trắng trong văn phòng." },
+{ en: "They are carrying some boxes in front of a building.", vi: "Họ đang mang vài cái hộp trước một tòa nhà." },
+{ en: "The workers are sitting on the bench under the table.", vi: "Những công nhân đang ngồi trên băng ghế dưới cái bàn." },
+{ en: "A woman is talking to a customer at a desk.", vi: "Một người phụ nữ đang nói chuyện với khách hàng tại bàn làm việc." },
+{ en: "Some people are standing next to the table in the office.", vi: "Một vài người đang đứng cạnh cái bàn trong văn phòng." },
+{ en: "A man is walking with a bag at the station.", vi: "Một người đàn ông đang đi bộ với một cái túi tại nhà ga." },
+{ en: "Passengers are boarding a bus in front of a building.", vi: "Hành khách đang lên xe buýt trước một tòa nhà." },
+{ en: "An employee is sitting at a desk under the table.", vi: "Một nhân viên đang ngồi tại bàn làm việc dưới cái bàn." },
+{ en: "The workers are pointing to a whiteboard in a line.", vi: "Những công nhân đang chỉ vào bảng trắng trong hàng." },
+{ en: "A woman is holding a document in the office.", vi: "Một người phụ nữ đang cầm tài liệu trong văn phòng." },
+{ en: "Some people are looking at the screen next to the window.", vi: "Một vài người đang nhìn vào màn hình bên cạnh cửa sổ." },
+{ en: "A man is standing on the bench at the station.", vi: "Một người đàn ông đang đứng trên băng ghế tại nhà ga." },
+{ en: "Customers are talking near the computer at the desk.", vi: "Khách hàng đang nói chuyện gần cái máy tính tại bàn làm việc." },
+{ en: "A woman is pointing to some boxes under the table.", vi: "Một người phụ nữ đang chỉ vào vài cái hộp dưới cái bàn." },
+{ en: "An employee is boarding a train in a line.", vi: "Một nhân viên đang lên tàu trong hàng." },
+{ en: "They are waiting for a bus at the station.", vi: "Họ đang chờ xe buýt tại nhà ga." },
+{ en: "A man is carrying a chair in front of a building.", vi: "Một người đàn ông đang mang cái ghế trước một tòa nhà." },
+{ en: "The workers are talking next to the window.", vi: "Những công nhân đang nói chuyện bên cạnh cửa sổ." },
+{ en: "Some people are sitting on the bench at the station.", vi: "Một vài người đang ngồi trên băng ghế tại nhà ga." },
+{ en: "A woman is looking at a document at a desk.", vi: "Một người phụ nữ đang nhìn vào tài liệu tại bàn làm việc." },
+{ en: "Passengers are walking with their luggage in the office.", vi: "Hành khách đang đi bộ với hành lý trong văn phòng." },
+{ en: "Customers are standing on the street in front of a building.", vi: "Khách hàng đang đứng trên đường phố trước một tòa nhà." },
+{ en: "A man is sitting next to the window holding a book.", vi: "Một người đàn ông đang ngồi bên cạnh cửa sổ cầm một quyển sách." },
+{ en: "An employee is waiting for a train at the station.", vi: "Một nhân viên đang chờ tàu tại nhà ga." },
+{ en: "The workers are carrying some boxes in front of a building.", vi: "Những công nhân đang mang vài cái hộp trước một tòa nhà." },
+{ en: "Some people are pointing to a document at a desk.", vi: "Một vài người đang chỉ vào một tài liệu tại bàn làm việc." },
+{ en: "A man is boarding a train next to the window.", vi: "Một người đàn ông đang lên tàu bên cạnh cửa sổ." },
+{ en: "Passengers are sitting under the table at the station.", vi: "Hành khách đang ngồi dưới cái bàn tại nhà ga." },
+{ en: "Customers are holding a whiteboard in the office.", vi: "Khách hàng đang cầm bảng trắng trong văn phòng." },
+{ en: "A woman is standing in front of a building holding a bag.", vi: "Một người phụ nữ đang đứng trước một tòa nhà cầm một cái túi." },
+{ en: "They are talking at a desk in the office.", vi: "Họ đang nói chuyện tại bàn làm việc trong văn phòng." },
+{ en: "An employee is looking at the table on the bench.", vi: "Một nhân viên đang nhìn vào cái bàn trên băng ghế." },
+{ en: "A man is sitting in a line with a computer.", vi: "Một người đàn ông đang ngồi trong hàng với một cái máy tính." },
+{ en: "Some people are walking next to the window.", vi: "Một vài người đang đi bộ bên cạnh cửa sổ." },
+{ en: "Passengers are boarding the bus on the street.", vi: "Hành khách đang lên xe buýt trên đường phố." },
+{ en: "The workers are standing in a line under the table.", vi: "Những công nhân đang đứng xếp hàng dưới cái bàn." },
+{ en: "A woman is pointing to the screen in the office.", vi: "Một người phụ nữ đang chỉ vào màn hình trong văn phòng." },
+{ en: "Customers are waiting for a document at a desk.", vi: "Khách hàng đang chờ tài liệu tại bàn làm việc." },
+{ en: "An employee is talking on the bench in front of a building.", vi: "Một nhân viên đang nói chuyện trên băng ghế trước một tòa nhà." },
+{ en: "A man is holding a chair next to the window.", vi: "Một người đàn ông đang cầm cái ghế bên cạnh cửa sổ." },
+{ en: "The workers are looking at a book at the station.", vi: "Những công nhân đang nhìn vào một quyển sách tại nhà ga." },
+{ en: "Some people are standing at a desk in the office.", vi: "Một vài người đang đứng tại bàn làm việc trong văn phòng." },
+{ en: "They are carrying their luggage under the table.", vi: "Họ đang mang hành lý dưới cái bàn." },
+{ en: "A woman is sitting on the bench holding a bag.", vi: "Một người phụ nữ đang ngồi trên băng ghế cầm một cái túi." },
+{ en: "A man is looking at a document at a desk.", vi: "Một người đàn ông đang nhìn vào một tài liệu tại bàn làm việc." },
+{ en: "Some people are waiting for a train at the station.", vi: "Một vài người đang chờ tàu tại nhà ga." },
+{ en: "Passengers are standing next to the window on the bench.", vi: "Hành khách đang đứng bên cạnh cửa sổ trên băng ghế." },
+{ en: "Customers are talking in front of a building.", vi: "Khách hàng đang nói chuyện trước một tòa nhà." },
+{ en: "The workers are pointing to a bus at the station.", vi: "Những công nhân đang chỉ vào một chiếc xe buýt tại nhà ga." },
+{ en: "A woman is boarding the train with her luggage.", vi: "Một người phụ nữ đang lên tàu với hành lý của mình." },
+{ en: "They are carrying a chair on the street.", vi: "Họ đang mang một cái ghế trên đường phố." },
+{ en: "An employee is sitting under the table next to the window.", vi: "Một nhân viên đang ngồi dưới cái bàn bên cạnh cửa sổ." },
+{ en: "Some people are holding books at a desk.", vi: "Một vài người đang cầm sách tại bàn làm việc." },
+{ en: "A man is standing in a line at the station.", vi: "Một người đàn ông đang đứng trong hàng tại nhà ga." },
+{ en: "Passengers are walking in front of a building.", vi: "Hành khách đang đi bộ trước một tòa nhà." },
+{ en: "The workers are talking next to the whiteboard.", vi: "Những công nhân đang nói chuyện bên cạnh bảng trắng." },
+{ en: "Customers are sitting on the bench under the table.", vi: "Khách hàng đang ngồi trên băng ghế dưới cái bàn." },
+{ en: "A woman is looking at the screen at the station.", vi: "Một người phụ nữ đang nhìn vào màn hình tại nhà ga." },
+{ en: "An employee is carrying some boxes in a line.", vi: "Một nhân viên đang mang vài cái hộp trong hàng." },
+{ en: "They are standing at a desk in the office.", vi: "Họ đang đứng tại bàn làm việc trong văn phòng." },
+{ en: "Some people are boarding a bus next to the window.", vi: "Một vài người đang lên xe buýt bên cạnh cửa sổ." },
+{ en: "A man is holding a document in the office.", vi: "Một người đàn ông đang cầm một tài liệu trong văn phòng." },
+{ en: "The workers are walking under the table at the station.", vi: "Những công nhân đang đi bộ dưới cái bàn tại nhà ga." },
+{ en: "Customers are pointing to a chair at a desk.", vi: "Khách hàng đang chỉ vào một cái ghế tại bàn làm việc." },
+{ en: "A woman is standing in front of a building holding a book.", vi: "Một người phụ nữ đang đứng trước một tòa nhà cầm một quyển sách." },
+{ en: "An employee is waiting for a bus at the station.", vi: "Một nhân viên đang chờ xe buýt tại nhà ga." },
+{ en: "Passengers are talking on the bench next to the window.", vi: "Hành khách đang nói chuyện trên băng ghế bên cạnh cửa sổ." },
+{ en: "Some people are sitting at a desk in the office.", vi: "Một vài người đang ngồi tại bàn làm việc trong văn phòng." },
+{ en: "A man is boarding a train with his luggage.", vi: "Một người đàn ông đang lên tàu với hành lý của mình." },
+{ en: "Customers are walking on the street in front of a building.", vi: "Khách hàng đang đi bộ trên đường phố trước một tòa nhà." },
+{ en: "The workers are carrying a whiteboard at the station.", vi: "Những công nhân đang mang bảng trắng tại nhà ga." },
+{ en: "A woman is pointing to the screen in a line.", vi: "Một người phụ nữ đang chỉ vào màn hình trong hàng." },
+{ en: "They are holding some boxes under the table.", vi: "Họ đang cầm vài cái hộp dưới cái bàn." },
+{ en: "A man is standing at a desk in the office.", vi: "Một người đàn ông đang đứng tại bàn làm việc trong văn phòng." },
+{ en: "Passengers are looking at the table at the station.", vi: "Hành khách đang nhìn vào cái bàn tại nhà ga." },
+{ en: "An employee is sitting in a line with a document.", vi: "Một nhân viên đang ngồi trong hàng với một tài liệu." },
+{ en: "Customers are waiting for the screen at a desk.", vi: "Khách hàng đang chờ màn hình tại bàn làm việc." },
+{ en: "The workers are talking near a whiteboard in the office.", vi: "Những công nhân đang nói chuyện gần bảng trắng trong văn phòng." },
+{ en: "Some people are pointing to a chair next to the window.", vi: "Một vài người đang chỉ vào cái ghế bên cạnh cửa sổ." },
+{ en: "A woman is sitting with a book at the station.", vi: "Một người phụ nữ đang ngồi với một quyển sách tại nhà ga." },
+{ en: "A man is carrying a computer in front of a building.", vi: "Một người đàn ông đang mang một cái máy tính trước một tòa nhà." },
+{ en: "They are walking in a line on the street.", vi: "Họ đang đi bộ thành hàng trên đường phố." },
+{ en: "An employee is looking at a train at the station.", vi: "Một nhân viên đang nhìn vào đoàn tàu tại nhà ga." },
+{ en: "The workers are boarding a bus next to the window.", vi: "Những công nhân đang lên xe buýt bên cạnh cửa sổ." },
+{ en: "A woman is holding a chair at the station.", vi: "Một người phụ nữ đang cầm một cái ghế tại nhà ga." },
+{ en: "Some people are boarding a bus at the station.", vi: "Một vài người đang lên xe buýt tại nhà ga." },
+{ en: "An employee is pointing to a computer in the office.", vi: "Một nhân viên đang chỉ vào cái máy tính trong văn phòng." },
+{ en: "Passengers are sitting in a line on the bench.", vi: "Hành khách đang ngồi theo hàng trên băng ghế." },
+{ en: "The workers are walking with their luggage under the table.", vi: "Những công nhân đang đi với hành lý của họ dưới cái bàn." },
+{ en: "Customers are looking at a whiteboard next to the window.", vi: "Khách hàng đang nhìn vào bảng trắng bên cạnh cửa sổ." },
+{ en: "A man is talking to a woman at a desk.", vi: "Một người đàn ông đang nói chuyện với một người phụ nữ tại bàn làm việc." },
+{ en: "Some people are carrying some boxes in the office.", vi: "Một vài người đang mang vài cái hộp trong văn phòng." },
+{ en: "An employee is sitting on the bench in a line.", vi: "Một nhân viên đang ngồi trên băng ghế theo hàng." },
+{ en: "A woman is walking with a document at the station.", vi: "Một người phụ nữ đang đi với một tài liệu tại nhà ga." },
+{ en: "The workers are pointing to the screen in the office.", vi: "Những công nhân đang chỉ vào màn hình trong văn phòng." },
+{ en: "Customers are standing next to the table at the station.", vi: "Khách hàng đang đứng bên cạnh cái bàn tại nhà ga." },
+{ en: "A man is waiting for a bus in front of a building.", vi: "Một người đàn ông đang chờ xe buýt trước một tòa nhà." },
+{ en: "Some people are sitting at a desk under the table.", vi: "Một vài người đang ngồi tại bàn làm việc dưới cái bàn." },
+{ en: "An employee is holding a bag next to the window.", vi: "Một nhân viên đang cầm một cái túi bên cạnh cửa sổ." },
+{ en: "Passengers are walking on the street near the station.", vi: "Hành khách đang đi bộ trên đường phố gần nhà ga." },
+{ en: "A woman is carrying a computer at the station.", vi: "Một người phụ nữ đang mang một cái máy tính tại nhà ga." },
+{ en: "They are talking near the whiteboard in the office.", vi: "Họ đang nói chuyện gần bảng trắng trong văn phòng." },
+{ en: "The workers are waiting for a document at a desk.", vi: "Những công nhân đang chờ một tài liệu tại bàn làm việc." },
+{ en: "A man is boarding a train on the street.", vi: "Một người đàn ông đang lên tàu trên đường phố." },
+{ en: "Customers are pointing to a chair at a desk.", vi: "Khách hàng đang chỉ vào một cái ghế tại bàn làm việc." },
+{ en: "Some people are holding the screen at the station.", vi: "Một vài người đang cầm màn hình tại nhà ga." },
+{ en: "An employee is sitting in front of a building.", vi: "Một nhân viên đang ngồi trước một tòa nhà." },
+{ en: "A woman is talking with a customer in the office.", vi: "Một người phụ nữ đang nói chuyện với khách hàng trong văn phòng." },
+{ en: "Passengers are carrying their luggage at the station.", vi: "Hành khách đang mang hành lý của họ tại nhà ga." },
+{ en: "The workers are standing in front of a building.", vi: "Những công nhân đang đứng trước một tòa nhà." },
+{ en: "Customers are boarding a bus in a line.", vi: "Khách hàng đang lên xe buýt trong hàng." },
+{ en: "A man is holding a book at the station.", vi: "Một người đàn ông đang cầm một quyển sách tại nhà ga." },
+{ en: "Some people are sitting next to the window.", vi: "Một vài người đang ngồi bên cạnh cửa sổ." },
+{ en: "An employee is pointing to a bus on the street.", vi: "Một nhân viên đang chỉ vào xe buýt trên đường phố." },
+{ en: "A woman is carrying some boxes in a line.", vi: "Một người phụ nữ đang mang vài cái hộp trong hàng." },
+{ en: "Passengers are waiting for a train next to the bench.", vi: "Hành khách đang chờ tàu bên cạnh băng ghế." },
+{ en: "The workers are walking next to the window.", vi: "Những công nhân đang đi bộ bên cạnh cửa sổ." },
+{ en: "Customers are sitting under the table.", vi: "Khách hàng đang ngồi dưới cái bàn." },
+{ en: "A man is standing on the street in front of a building.", vi: "Một người đàn ông đang đứng trên đường phố trước một tòa nhà." },
+{ en: "Some people are talking at a desk in the office.", vi: "Một vài người đang nói chuyện tại bàn làm việc trong văn phòng." },
+{ en: "An employee is looking at a document at a desk.", vi: "Một nhân viên đang nhìn vào tài liệu tại bàn làm việc." },
+{ en: "A woman is boarding a bus in front of a building.", vi: "Một người phụ nữ đang lên xe buýt trước một tòa nhà." },
+{ en: "They are carrying a chair on the bench.", vi: "Họ đang mang một cái ghế trên băng ghế." },
+{ en: "Passengers are standing with their luggage in a line.", vi: "Hành khách đang đứng với hành lý của họ trong hàng." },
+{ en: "A man is sitting at a desk reading a document.", vi: "Một người đàn ông đang ngồi tại bàn làm việc đọc một tài liệu." },
+{ en: "Some people are boarding a bus on the street.", vi: "Một vài người đang lên xe buýt trên đường phố." },
+{ en: "An employee is pointing to a whiteboard in front of a building.", vi: "Một nhân viên đang chỉ vào bảng trắng trước một tòa nhà." },
+{ en: "Passengers are walking next to the window at the station.", vi: "Hành khách đang đi bộ bên cạnh cửa sổ tại nhà ga." },
+{ en: "Customers are standing in a line under the table.", vi: "Khách hàng đang xếp hàng dưới cái bàn." },
+{ en: "A woman is carrying a chair at a desk.", vi: "Một người phụ nữ đang mang một cái ghế tại bàn làm việc." },
+{ en: "The workers are talking at the station.", vi: "Những công nhân đang nói chuyện tại nhà ga." },
+{ en: "A man is holding a bag next to the whiteboard.", vi: "Một người đàn ông đang cầm một cái túi bên cạnh bảng trắng." },
+{ en: "Some people are sitting in front of a building.", vi: "Một vài người đang ngồi trước một tòa nhà." },
+{ en: "An employee is walking in a line with their luggage.", vi: "Một nhân viên đang đi theo hàng với hành lý của mình." },
+{ en: "A woman is looking at a document next to the window.", vi: "Một người phụ nữ đang nhìn vào tài liệu bên cạnh cửa sổ." },
+{ en: "They are standing at a desk with a computer.", vi: "Họ đang đứng tại bàn làm việc với một cái máy tính." },
+{ en: "Passengers are waiting for a bus at the station.", vi: "Hành khách đang chờ xe buýt tại nhà ga." },
+{ en: "The workers are boarding a train in a line.", vi: "Những công nhân đang lên tàu theo hàng." },
+{ en: "Customers are talking near a desk under the table.", vi: "Khách hàng đang nói chuyện gần một bàn dưới cái bàn." },
+{ en: "A man is pointing to a chair on the bench.", vi: "Một người đàn ông đang chỉ vào cái ghế trên băng ghế." },
+{ en: "An employee is sitting with a book at the station.", vi: "Một nhân viên đang ngồi với một quyển sách tại nhà ga." },
+{ en: "A woman is holding a document in front of a building.", vi: "Một người phụ nữ đang cầm tài liệu trước một tòa nhà." },
+{ en: "Some people are carrying boxes next to the window.", vi: "Một vài người đang mang các hộp bên cạnh cửa sổ." },
+{ en: "The workers are looking at the screen at a desk.", vi: "Những công nhân đang nhìn vào màn hình tại bàn làm việc." },
+{ en: "A man is standing at the station holding a chair.", vi: "Một người đàn ông đang đứng tại nhà ga cầm một cái ghế." },
+{ en: "Customers are sitting on a bench reading books.", vi: "Khách hàng đang ngồi trên băng ghế đọc sách." },
+{ en: "Passengers are boarding a train under the table.", vi: "Hành khách đang lên tàu dưới cái bàn." },
+{ en: "A woman is carrying a bag in the office.", vi: "Một người phụ nữ đang mang một cái túi trong văn phòng." },
+{ en: "They are pointing to the whiteboard at the station.", vi: "Họ đang chỉ vào bảng trắng tại nhà ga." },
+{ en: "Some people are waiting in front of a building.", vi: "Một vài người đang chờ trước một tòa nhà." },
+{ en: "An employee is holding a book next to the window.", vi: "Một nhân viên đang cầm một quyển sách bên cạnh cửa sổ." },
+{ en: "A man is sitting under the table at a desk.", vi: "Một người đàn ông đang ngồi dưới cái bàn tại bàn làm việc." },
+{ en: "The workers are walking at the station with documents.", vi: "Những công nhân đang đi bộ tại nhà ga với tài liệu." },
+{ en: "Customers are looking at the table in the office.", vi: "Khách hàng đang nhìn vào cái bàn trong văn phòng." },
+{ en: "Passengers are standing in a line at the bus stop.", vi: "Hành khách đang đứng xếp hàng tại trạm xe buýt." },
+{ en: "A woman is talking to a man next to the whiteboard.", vi: "Một người phụ nữ đang nói chuyện với một người đàn ông bên cạnh bảng trắng." },
+{ en: "An employee is boarding a bus on the street.", vi: "Một nhân viên đang lên xe buýt trên đường phố." },
+{ en: "Some people are pointing to a computer at a desk.", vi: "Một vài người đang chỉ vào một cái máy tính tại bàn làm việc." },
+{ en: "A man is walking with his luggage at the station.", vi: "Một người đàn ông đang đi với hành lý của mình tại nhà ga." },
+{ en: "Customers are sitting in a line in the office.", vi: "Khách hàng đang ngồi theo hàng trong văn phòng." },
+{ en: "The workers are carrying a chair in front of a building.", vi: "Những công nhân đang mang một cái ghế trước một tòa nhà." },
+{ en: "Passengers are reading documents at a desk.", vi: "Hành khách đang đọc tài liệu tại bàn làm việc." },
+{ en: "A woman is holding a box next to the bench.", vi: "Một người phụ nữ đang cầm một cái hộp bên cạnh băng ghế." },
+{ en: "They are looking at a screen at the station.", vi: "Họ đang nhìn vào một màn hình tại nhà ga." },
+{ en: "An employee is reading a book at a desk.", vi: "Một nhân viên đang đọc một quyển sách tại bàn làm việc." },
+{ en: "A man is standing near a whiteboard in the office.", vi: "Một người đàn ông đang đứng gần bảng trắng trong văn phòng." },
+{ en: "Some people are boarding the bus next to the window.", vi: "Một vài người đang lên xe buýt bên cạnh cửa sổ." },
+{ en: "Customers are talking in a line at the station.", vi: "Khách hàng đang nói chuyện trong hàng tại nhà ga." },
+{ en: "The workers are carrying documents on the street.", vi: "Những công nhân đang mang tài liệu trên đường phố." },
+{ en: "A woman is waiting for a train with her luggage.", vi: "Một người phụ nữ đang chờ tàu với hành lý của mình." },
+{ en: "Passengers are sitting under the table in the office.", vi: "Hành khách đang ngồi dưới cái bàn trong văn phòng." },
+{ en: "They are standing on the bench near the station.", vi: "Họ đang đứng trên băng ghế gần nhà ga." },
+{ en: "An employee is pointing to a screen in a line.", vi: "Một nhân viên đang chỉ vào màn hình trong hàng." },
+{ en: "A man is walking in front of a building with a chair.", vi: "Một người đàn ông đang đi bộ trước một tòa nhà với một cái ghế." },
+{ en: "Some people are looking at a whiteboard in the office.", vi: "Một vài người đang nhìn vào bảng trắng trong văn phòng." },
+{ en: "A woman is sitting at a desk next to the window.", vi: "Một người phụ nữ đang ngồi tại bàn làm việc bên cạnh cửa sổ." },
+{ en: "Customers are holding boxes in a line.", vi: "Khách hàng đang cầm các hộp trong hàng." },
+{ en: "The workers are waiting for a bus at the station.", vi: "Những công nhân đang chờ xe buýt tại nhà ga." },
+{ en: "Passengers are boarding a train at a platform.", vi: "Hành khách đang lên tàu tại sân ga." },
+{ en: "A man is carrying a document at a desk.", vi: "Một người đàn ông đang mang tài liệu tại bàn làm việc." },
+{ en: "An employee is sitting on a bench with a book.", vi: "Một nhân viên đang ngồi trên băng ghế với một quyển sách." },
+{ en: "Some people are walking under the table.", vi: "Một vài người đang đi bộ dưới cái bàn." },
+{ en: "A woman is talking to someone in front of a building.", vi: "Một người phụ nữ đang nói chuyện với ai đó trước một tòa nhà." },
+{ en: "Customers are standing next to a whiteboard at the station.", vi: "Khách hàng đang đứng bên cạnh bảng trắng tại nhà ga." },
+{ en: "The workers are carrying chairs on the street.", vi: "Những công nhân đang mang ghế trên đường phố." },
+{ en: "A man is pointing to a bag at a desk.", vi: "Một người đàn ông đang chỉ vào một cái túi tại bàn làm việc." },
+{ en: "Passengers are looking at the screen in the office.", vi: "Hành khách đang nhìn vào màn hình trong văn phòng." },
+{ en: "Some people are boarding the bus in front of a building.", vi: "Một vài người đang lên xe buýt trước một tòa nhà." },
+{ en: "An employee is holding a document next to the bench.", vi: "Một nhân viên đang cầm tài liệu bên cạnh băng ghế." },
+{ en: "A woman is standing in a line with her luggage.", vi: "Một người phụ nữ đang đứng trong hàng với hành lý của mình." },
+{ en: "They are talking next to the table at the station.", vi: "Họ đang nói chuyện bên cạnh cái bàn tại nhà ga." },
+{ en: "Customers are sitting in front of a building reading books.", vi: "Khách hàng đang ngồi trước một tòa nhà đọc sách." },
+{ en: "The workers are walking in a line at the station.", vi: "Những công nhân đang đi theo hàng tại nhà ga." },
+{ en: "A man is boarding a train beside a bus.", vi: "Một người đàn ông đang lên tàu bên cạnh một chiếc xe buýt." },
+{ en: "Some people are carrying their luggage in the office.", vi: "Một vài người đang mang hành lý của họ trong văn phòng." },
+{ en: "A woman is holding a whiteboard under the table.", vi: "Một người phụ nữ đang cầm bảng trắng dưới cái bàn." },
+{ en: "Passengers are pointing to the bus next to the window.", vi: "Hành khách đang chỉ vào xe buýt bên cạnh cửa sổ." },
+{ en: "An employee is talking on the bench at the station.", vi: "Một nhân viên đang nói chuyện trên băng ghế tại nhà ga." },
+{ en: "Customers are waiting in front of a building.", vi: "Khách hàng đang chờ trước một tòa nhà." },
+{ en: "The workers are reading documents in the office.", vi: "Những công nhân đang đọc tài liệu trong văn phòng." },
+{ en: "A man is sitting with a computer under the table.", vi: "Một người đàn ông đang ngồi với cái máy tính dưới cái bàn." },
+{ en: "Some people are standing near the screen at a desk.", vi: "Một vài người đang đứng gần màn hình tại bàn làm việc." },
+{ en: "A woman is boarding a train in a line.", vi: "Một người phụ nữ đang lên tàu theo hàng." },
+{ en: "They are carrying chairs at the station.", vi: "Họ đang mang những cái ghế tại nhà ga." },
+{ en: "They is sitting a document on the bench.", vi: "Họ đang ngồi một tài liệu trên băng ghế." },
+{ en: "A woman are walking a bus in the office.", vi: "Một người phụ nữ đang đi bộ một chiếc xe buýt trong văn phòng." },
+{ en: "A man is standing their luggage at a desk.", vi: "Một người đàn ông đang đứng hành lý của họ tại bàn làm việc." },
+{ en: "A woman are talking a bus on the street.", vi: "Một người phụ nữ đang nói chuyện một chiếc xe buýt trên đường phố." },
+{ en: "An employee is carrying some boxes in front of a building.", vi: "Một nhân viên đang mang vài cái hộp trước một tòa nhà." },
+{ en: "Customers are pointing to the screen in a line.", vi: "Khách hàng đang chỉ vào màn hình trong hàng." },
+{ en: "The workers are sitting a chair next to the window.", vi: "Những công nhân đang ngồi một cái ghế bên cạnh cửa sổ." },
+{ en: "Passengers are standing the whiteboard on the bench.", vi: "Hành khách đang đứng bảng trắng trên băng ghế." },
+{ en: "A man is holding a bag on the street.", vi: "Một người đàn ông đang cầm một cái túi trên đường phố." },
+{ en: "A woman is looking at a computer under the table.", vi: "Một người phụ nữ đang nhìn vào máy tính dưới cái bàn." },
+{ en: "Some people are walking their luggage in a line.", vi: "Một vài người đang đi bộ hành lý của họ trong hàng." },
+{ en: "An employee is reading a document in the office.", vi: "Một nhân viên đang đọc một tài liệu trong văn phòng." },
+{ en: "They are boarding a train at a desk.", vi: "Họ đang lên tàu tại bàn làm việc." },
+{ en: "The workers are talking a document at the station.", vi: "Những công nhân đang nói chuyện một tài liệu tại nhà ga." },
+{ en: "Customers are carrying a chair on the bench.", vi: "Khách hàng đang mang một cái ghế trên băng ghế." },
+{ en: "Passengers are sitting a book at the station.", vi: "Hành khách đang ngồi một quyển sách tại nhà ga." },
+{ en: "A man is pointing to a computer in a line.", vi: "Một người đàn ông đang chỉ vào một máy tính trong hàng." },
+{ en: "A woman is waiting for a bus at a desk.", vi: "Một người phụ nữ đang chờ xe buýt tại bàn làm việc." },
+{ en: "Some people are standing the table at the station.", vi: "Một vài người đang đứng cái bàn tại nhà ga." },
+{ en: "An employee is holding their luggage next to the window.", vi: "Một nhân viên đang cầm hành lý của họ bên cạnh cửa sổ." },
+{ en: "They are carrying some boxes in front of a building.", vi: "Họ đang mang vài cái hộp trước một tòa nhà." },
+{ en: "The workers are boarding a bus in the office.", vi: "Những công nhân đang lên xe buýt trong văn phòng." },
+{ en: "Customers are talking a book on the bench.", vi: "Khách hàng đang nói chuyện một quyển sách trên băng ghế." },
+{ en: "Passengers are walking a train on the street.", vi: "Hành khách đang đi bộ một đoàn tàu trên đường phố." },
+{ en: "A man is sitting the document at the station.", vi: "Một người đàn ông đang ngồi tài liệu tại nhà ga." },
+{ en: "A woman is pointing to a screen in the office.", vi: "Một người phụ nữ đang chỉ vào màn hình trong văn phòng." },
+{ en: "Some people are waiting for a bus under the table.", vi: "Một vài người đang chờ xe buýt dưới cái bàn." },
+{ en: "An employee is carrying a chair next to the window.", vi: "Một nhân viên đang mang một cái ghế bên cạnh cửa sổ." },
+{ en: "They are reading a book on the bench.", vi: "Họ đang đọc một quyển sách trên băng ghế." },
+{ en: "The workers are standing the screen in a line.", vi: "Những công nhân đang đứng màn hình trong hàng." },
+{ en: "Customers are looking at a whiteboard in the office.", vi: "Khách hàng đang nhìn vào bảng trắng trong văn phòng." },
+{ en: "Passengers are holding a bag in front of a building.", vi: "Hành khách đang cầm một cái túi trước một tòa nhà." },
+{ en: "A man is walking a document at the station.", vi: "Một người đàn ông đang đi bộ một tài liệu tại nhà ga." },
+{ en: "A woman is sitting with a computer in a line.", vi: "Một người phụ nữ đang ngồi với một cái máy tính trong hàng." },
+{ en: "Some people are pointing to the bus at the desk.", vi: "Một vài người đang chỉ vào xe buýt tại bàn làm việc." },
+{ en: "An employee is boarding a train next to the window.", vi: "Một nhân viên đang lên tàu bên cạnh cửa sổ." },
+{ en: "They are standing with their luggage under the table.", vi: "Họ đang đứng với hành lý của họ dưới cái bàn." },
+{ en: "The workers are reading a book in the office.", vi: "Những công nhân đang đọc một quyển sách trong văn phòng." },
+{ en: "Customers are sitting the table at the station.", vi: "Khách hàng đang ngồi cái bàn tại nhà ga." },
+{ en: "Passengers are carrying some boxes at a desk.", vi: "Hành khách đang mang vài cái hộp tại bàn làm việc." },
+{ en: "A man is holding a chair on the street.", vi: "Một người đàn ông đang cầm một cái ghế trên đường phố." },
+{ en: "A woman is sitting at a desk with a computer.", vi: "Một người phụ nữ đang ngồi tại bàn làm việc với một cái máy tính." },
+{ en: "An employee is carrying some boxes in the office.", vi: "Một nhân viên đang mang vài cái hộp trong văn phòng." },
+{ en: "Passengers are boarding a train next to the window.", vi: "Hành khách đang lên tàu bên cạnh cửa sổ." },
+{ en: "A man is pointing to a document at the station.", vi: "Một người đàn ông đang chỉ vào một tài liệu tại nhà ga." },
+{ en: "Customers are waiting in a line on the street.", vi: "Khách hàng đang xếp hàng trên đường phố." },
+{ en: "The workers are reading a book under the table.", vi: "Những công nhân đang đọc một quyển sách dưới cái bàn." },
+{ en: "Some people are talking in front of a building.", vi: "Một vài người đang nói chuyện trước một tòa nhà." },
+{ en: "They are holding a bag at a desk.", vi: "Họ đang cầm một cái túi tại bàn làm việc." },
+{ en: "A woman is looking at the screen on the bench.", vi: "Một người phụ nữ đang nhìn vào màn hình trên băng ghế." },
+{ en: "An employee is walking with a chair on the street.", vi: "Một nhân viên đang đi bộ với một cái ghế trên đường phố." },
+{ en: "A man is standing in a line at the station.", vi: "Một người đàn ông đang đứng trong hàng tại nhà ga." },
+{ en: "Some people are boarding a bus at the platform.", vi: "Một vài người đang lên xe buýt tại sân ga." },
+{ en: "Customers are carrying their luggage in the office.", vi: "Khách hàng đang mang hành lý của họ trong văn phòng." },
+{ en: "The workers are pointing to a whiteboard at a desk.", vi: "Những công nhân đang chỉ vào bảng trắng tại bàn làm việc." },
+{ en: "Passengers are sitting on a bench reading books.", vi: "Hành khách đang ngồi trên băng ghế đọc sách." },
+{ en: "A woman is standing with a document at the station.", vi: "Một người phụ nữ đang đứng với một tài liệu tại nhà ga." },
+{ en: "An employee is boarding the train with a bag.", vi: "Một nhân viên đang lên tàu với một cái túi." },
+{ en: "They are sitting next to the table in the office.", vi: "Họ đang ngồi bên cạnh cái bàn trong văn phòng." },
+{ en: "A man is carrying a box in front of a building.", vi: "Một người đàn ông đang mang một cái hộp trước một tòa nhà." },
+{ en: "Some people are waiting for the bus in a line.", vi: "Một vài người đang chờ xe buýt trong hàng." },
+{ en: "Customers are talking next to the window.", vi: "Khách hàng đang nói chuyện bên cạnh cửa sổ." },
+{ en: "The workers are walking with documents at the station.", vi: "Những công nhân đang đi bộ với tài liệu tại nhà ga." },
+{ en: "A woman is holding a chair near the platform.", vi: "Một người phụ nữ đang cầm một cái ghế gần sân ga." },
+{ en: "An employee is sitting under the table reading.", vi: "Một nhân viên đang ngồi dưới cái bàn đọc sách." },
+{ en: "Passengers are boarding a bus with their luggage.", vi: "Hành khách đang lên xe buýt với hành lý của họ." },
+{ en: "They are pointing to the screen in the office.", vi: "Họ đang chỉ vào màn hình trong văn phòng." },
+{ en: "Some people are standing at a desk in a line.", vi: "Một vài người đang đứng tại bàn làm việc theo hàng." },
+{ en: "Customers are reading documents at the station.", vi: "Khách hàng đang đọc tài liệu tại nhà ga." },
+{ en: "A man is walking with a bag next to the bench.", vi: "Một người đàn ông đang đi với một cái túi bên cạnh băng ghế." },
+{ en: "The workers are carrying boxes near the entrance.", vi: "Những công nhân đang mang các hộp gần lối vào." },
+{ en: "A woman is boarding a train next to a man.", vi: "Một người phụ nữ đang lên tàu bên cạnh một người đàn ông." },
+{ en: "An employee is talking at the counter.", vi: "Một nhân viên đang nói chuyện tại quầy." },
+{ en: "Passengers are waiting on the platform.", vi: "Hành khách đang chờ trên sân ga." },
+{ en: "They are sitting in the waiting area.", vi: "Họ đang ngồi trong khu vực chờ." },
+{ en: "Some people are looking at the train schedule.", vi: "Một vài người đang nhìn vào lịch trình tàu." },
+{ en: "Customers are boarding a vehicle on the road.", vi: "Khách hàng đang lên một chiếc xe trên đường." },
+{ en: "The workers are lifting a box together.", vi: "Những công nhân đang cùng nhau nhấc một cái hộp." },
+{ en: "A man is pointing toward the exit.", vi: "Một người đàn ông đang chỉ về phía lối ra." },
+{ en: "A woman is sitting with a laptop near the window.", vi: "Một người phụ nữ đang ngồi với máy tính xách tay gần cửa sổ." },
+{ en: "An employee is checking a list at the desk.", vi: "Một nhân viên đang kiểm tra danh sách tại bàn làm việc." },
+
+
+
+
+
+      // 👉 Thêm 99 câu còn lại ngay dưới dòng này...
+    ];
+
+    // State
+    let all = DATA.slice();
+    let view = all.slice();
+    let idx = 0;
+    let flipped = false;
+
+    // Elements
+    const card = $('#card');
+    const frontWord = $('#front-word');
+    const backMeaning = $('#back-meaning');
+    const counter = $('#counter');
+    const search = $('#search');
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+
+    function render(){
+      if(view.length===0){
+        frontWord.textContent = 'Không có thẻ';
+        backMeaning.innerHTML = '<span class="muted">Hãy thêm câu trong mảng DATA.</span>';
+        $('#prev').disabled = $('#next').disabled = $('#flip').disabled = true;
+        counter.textContent = '0 / 0';
+        card.classList.remove('flipped');
+        return;
+      }
+      $('#prev').disabled = $('#next').disabled = $('#flip').disabled = false;
+
+      idx = (idx + view.length) % view.length;
+      const c = view[idx];
+      frontWord.textContent = c.en;
+      backMeaning.innerHTML = escapeHtml(c.vi);
+      counter.textContent = `${idx+1} / ${view.length}`;
+      card.classList.toggle('flipped', flipped);
+    }
+
+    function applyFilter(){
+      const q = search.value.trim().toLowerCase();
+      view = all.filter(c=>{
+        if(!q) return true;
+        return [c.en, c.vi].some(x=> String(x||'').toLowerCase().includes(q));
+      });
+      idx = 0; flipped = false; render();
+    }
+
+    // Events
+    $('#flip').addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+    card.addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+    $('#next').addEventListener('click', ()=>{ idx++; flipped=false; render(); });
+    $('#prev').addEventListener('click', ()=>{ idx--; flipped=false; render(); });
+    $('#shuffle').addEventListener('click', ()=>{ view = shuffle(view); idx=0; flipped=false; render(); });
+    search.addEventListener('input', applyFilter);
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='ArrowRight'){ e.preventDefault(); $('#next').click(); }
+      if(e.key==='ArrowLeft'){ e.preventDefault(); $('#prev').click(); }
+      if(e.key===' '){ e.preventDefault(); $('#flip').click(); }
+      if(e.key==='Enter' && document.activeElement===search){ applyFilter(); }
+    });
+
+    // First render
+    render();
+  })();
+  </script>
+</body>
+</html>
