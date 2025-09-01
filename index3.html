@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Countdown 75:00 — Flip</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#ffd9e6;
+      --bg2:#f7c2d4;
+      --panel: rgba(255,255,255,0.18);
+      --panel-border: rgba(255,255,255,0.28);
+      --digit:#ffffff;
+      --shadow: rgba(0,0,0,0.08);
+      --split-line: rgba(255,255,255,0.35);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple SD Gothic Neo", sans-serif;
+      background: radial-gradient(1200px 800px at 50% 30%, var(--bg1), var(--bg2));
+      display:grid; place-items:center;
+      color:#fff; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    }
+
+    .wrap{
+      width:min(950px, 94vw);
+      padding:40px 28px 34px;
+      border-radius:28px;
+      background:var(--panel);
+      border:1px solid var(--panel-border);
+      box-shadow:0 20px 60px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.35);
+      position:relative; overflow:hidden;
+    }
+
+    .wrap::after{
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background: radial-gradient(160px 100% at 50% 50%, rgba(255,255,255,0.22), transparent 70%);
+      mix-blend-mode:screen; opacity:.6;
+    }
+
+    h1{
+      margin:0 0 22px; letter-spacing:0.38em; text-indent:0.38em;
+      font-weight:700; font-size: clamp(18px, 2.3vw, 28px);
+      opacity:.9;
+    }
+
+    .board{
+      display:flex; align-items:stretch; justify-content:center; gap: clamp(18px, 3.2vw, 32px);
+      padding:18px 10px 10px; position:relative;
+    }
+
+    .group{ display:flex; align-items:center; gap: clamp(8px,1.6vw,16px); position:relative; }
+    .min-tag{ position:absolute; bottom:-32px; left:50%; transform:translateX(-50%); font-weight:700; letter-spacing:.18em; font-size: clamp(10px, 1.6vw, 14px); }
+
+    .colon{ align-self:center; font-weight:700; line-height:1; font-size: clamp(48px, 9vw, 96px); opacity:.95; margin-top:-6px; }
+
+    .flip{
+      position:relative; width: clamp(80px, 15vw, 140px); height: clamp(110px, 20vw, 200px);
+      perspective: 1200px; border-radius:12px; overflow:hidden;
+      box-shadow: 0 14px 28px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.35);
+      background: linear-gradient(#f6c8d7, #f2b3c9);
+    }
+
+    /* horizontal divider line inside each digit card */
+    .flip::before{
+      content:""; position:absolute; left:0; right:0; top:50%; height:1px;
+      background:rgba(255,255,255,0.45); z-index:5;
+    }
+
+    .digit-face{
+      position:absolute; left:0; right:0; top:0; bottom:0;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; color:var(--digit);
+      font-size: clamp(64px, 11vw, 140px);
+    }
+
+    .top-flip, .bottom-flip{
+      position:absolute; left:0; right:0; height:50%; display:flex; align-items:center; justify-content:center;
+      font-weight:700; color:var(--digit);
+      font-size: clamp(64px, 11vw, 140px);
+      backface-visibility:hidden; -webkit-backface-visibility:hidden;
+      background: linear-gradient(#f6c8d7, #f2b3c9);
+    }
+    .top-flip{ top:0; transform-origin: bottom; animation: flipTop 280ms ease-in forwards; border-bottom:1px solid rgba(255,255,255,0.45); }
+    .bottom-flip{ bottom:0; transform-origin: top; transform: rotateX(90deg); animation: flipBottom 320ms ease-out forwards 260ms; border-top:1px solid rgba(255,255,255,0.45); }
+
+    @keyframes flipTop { from{ transform: rotateX(0); } to{ transform: rotateX(-90deg); } }
+    @keyframes flipBottom { from{ transform: rotateX(90deg); } to{ transform: rotateX(0); } }
+
+    footer{ margin-top:38px; text-align:center; opacity:.85; font-size:14px }
+    button.reset{
+      margin-left:8px; border:0; background:rgba(255,255,255,0.22); color:#fff; padding:10px 14px; border-radius:999px; cursor:pointer; backdrop-filter: blur(2px);
+    }
+    button.reset:hover{ background:rgba(255,255,255,0.28); }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app">
+    <h1>COUNTDOWN</h1>
+    <div class="board" role="timer" aria-live="polite">
+      <div class="group" aria-label="minutes">
+        <div class="flip" id="mT"><div class="digit-face">0</div></div>
+        <div class="flip" id="mO"><div class="digit-face">0</div></div>
+        <div class="min-tag">MIN</div>
+      </div>
+      <div class="colon">:</div>
+      <div class="group" aria-label="seconds">
+        <div class="flip" id="sT"><div class="digit-face">0</div></div>
+        <div class="flip" id="sO"><div class="digit-face">0</div></div>
+      </div>
+    </div>
+    <footer>
+      Toeic 연습 시작 <strong>75:00</strong>. <button class="reset" id="restart" title="Khởi động lại">↺ Restart</button>
+    </footer>
+  </div>
+
+  <script>
+    function flipTo(flipEl, newNumber){
+      const current = flipEl.dataset.digit ?? flipEl.querySelector('.digit-face').textContent.trim();
+      if(String(current) === String(newNumber)) return;
+      flipEl.dataset.digit = newNumber;
+
+      const face = flipEl.querySelector('.digit-face');
+
+      const topFlip = document.createElement('div');
+      topFlip.className = 'top-flip';
+      topFlip.textContent = current;
+
+      const bottomFlip = document.createElement('div');
+      bottomFlip.className = 'bottom-flip';
+      bottomFlip.textContent = newNumber;
+
+      topFlip.addEventListener('animationend', () => face.textContent = newNumber);
+      bottomFlip.addEventListener('animationend', () => {
+        topFlip.remove(); bottomFlip.remove();
+      });
+
+      flipEl.appendChild(topFlip);
+      flipEl.appendChild(bottomFlip);
+    }
+
+    const START_MINUTES = 75;
+    let total = START_MINUTES * 60;
+    let tick;
+
+    const $ = (id)=>document.getElementById(id);
+    const mT=$('mT'), mO=$('mO'), sT=$('sT'), sO=$('sO');
+
+    function setDigits(mins, secs){
+      const [mt, mo] = String(mins).padStart(2,'0').split('');
+      const [st, so] = String(secs).padStart(2,'0').split('');
+      flipTo(mT, mt); flipTo(mO, mo); flipTo(sT, st); flipTo(sO, so);
+    }
+
+    function render(){
+      const mins = Math.floor(total / 60);
+      const secs = total % 60;
+      setDigits(mins, secs);
+    }
+
+    function start(){
+      clearInterval(tick);
+      render();
+      tick = setInterval(()=>{
+        if(total <= 0){ clearInterval(tick); return; }
+        total -= 1; render();
+      }, 1000);
+    }
+
+    function restart(){ total = START_MINUTES * 60; start(); }
+
+    document.getElementById('restart').addEventListener('click', restart);
+
+    start();
+  </script>
+</body>
+</html>
